@@ -36,7 +36,7 @@ Game.registerMod('omniscient_cookies', {
 		    },
 		    {   // Scroll the background with the scroll offset
 			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
-			replacement: '0,0,this.canvas.width,this.canvas.height,128,128,-this.scrollOffX'
+			replacement: '0,0,this.canvas.width,this.canvas.height,128,128,-Math.floor(this.scrollOffX)'
 		    },
 		    {   // Modify building image bounds based on scroll offset
 			pattern: 'var maxI=Math.floor(this.canvas.width',

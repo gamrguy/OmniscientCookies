@@ -1,4 +1,4 @@
-Game.registerMod('omnicient_cookies', {
+Game.registerMod('omniscient_cookies', {
 	init:function() {
 		// Automatically hide the scroll bar in the building display
 		var center = document.getElementById('centerArea');
@@ -211,4 +211,4 @@ Game.registerMod('omnicient_cookies', {
 		
 	}
 });
-Game.Notify("Loaded Omnicient Cookies v1.0",'',0,0.5);
+Game.Notify("Loaded Omniscient Cookies v1.0",'',0,0.5);

@@ -1,4 +1,4 @@
-# OmnicientCookies
+# OmniscientCookies
 Small visual mod for Cookie Clicker.
 
 Does the following:

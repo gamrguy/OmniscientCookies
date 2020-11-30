@@ -75,4 +75,4 @@ Game.registerMod('omniscient_cookies', {
 	    };
 	}
 });
-Game.Notify("Loaded Omniscient Cookies v1.1",'',0,0.5);
+Game.Notify("Loaded Omniscient Cookies v1.1.1",'',0,0.5);

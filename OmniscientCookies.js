@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.0'
+	version: 'v1.2.1'
 };
 
 OmniCookies.settings = {
@@ -219,6 +219,14 @@ OmniCookies.patchBuffTooltips = function() {
 			return text;
 		};
 	}
+
+	let minigame = Game.Objects['Wizard tower'].minigame;
+	minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
+		{
+			pattern: 'me.maxTime+=gain;',
+			replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+		}
+	]);
 }
 
 //#endregion

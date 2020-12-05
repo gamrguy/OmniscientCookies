@@ -1,13 +1,14 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.1'
+	version: 'v1.2.2'
 };
 
 OmniCookies.settings = {
 	autoScrollbar: true,
 	scrollingBuildings: true,
 	smoothBuildings: true,
-	buffTooltipDuration: true
+	buffTooltipDuration: true,
+	betterBuildingTooltips: true
 }
 
 //==============================//
@@ -72,7 +73,7 @@ OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunction
 }
 
 OmniCookies.customOptionsMenu = function() {
-	if(!(Game.onMenu == 'prefs') || document.getElementById("OmniCookiesButton_autoScrollbar")) return;
+	if(!(Game.onMenu == 'prefs')) return;
 
 	let frag = document.createDocumentFragment();
 
@@ -102,7 +103,25 @@ OmniCookies.customOptionsMenu = function() {
 		'(buffs will show their current duration in their tooltip)'
 	));
 
+	frag.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
+		'Improved building tooltips ON', 'Improved building tooltips OFF',
+		'(building tooltips in the shop look a little better; disabling requires refresh)',
+		function() {
+			if(!OmniCookies.patchedBuildingTooltips) OmniCookies.patchBuildingTooltips();
+		}
+	));
+
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
+}
+
+// Patch Game.UpdateMenu to shove in our menu
+OmniCookies.patchUpdateMenu = function() {
+	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [
+		{
+			pattern: /}$/,
+			replacement: 'OmniCookies.customOptionsMenu()$&'
+		}
+	]);
 }
 
 //#endregion
@@ -187,9 +206,52 @@ OmniCookies.patchBuildings = function() {
 	};
 }
 
+// Patches building tooltips to look a bit better in some cases
+OmniCookies.patchBuildingTooltips = function() {
+	OmniCookies.patchedBuildingTooltips = true;
+
+	for(var i in Game.Objects) {
+		var building = Game.Objects[i];
+		building.tooltip = OmniCookies.replaceCode(building.tooltip, [
+			{
+				pattern: 'if (synergiesStr!=\'\') synergiesStr+=\', \';',
+				replacement: 'synergiesStr += \'<br>&nbsp;&nbsp;&nbsp;&nbsp;- \''
+			},
+			{
+				pattern: 'synergiesStr+=i+\' +\'+Beautify(synergiesWith[i]*100,1)+\'%\';',
+				replacement: 'synergiesStr+=i+\' <b>+\'+Beautify(synergiesWith[i]*100,1)+\'%</b>\';'
+			},
+			{
+				pattern: 'synergiesStr=\'...also boosting some other buildings : \'+synergiesStr+\' - all',
+				replacement: 'synergiesStr=\'...also boosting some other buildings: \'+synergiesStr+\'<br>&bull; all'
+			},
+			{
+				pattern: '<div class="data"',
+				replacement: '$& style="white-space:nowrap;"'
+			}
+		]);
+	}
+}
+
 // Patches buff tooltips to show remaining time
 OmniCookies.patchBuffTooltips = function() {
 	OmniCookies.buffsById = [];
+
+	// Edit existing buffs from loaded savegame
+	for(let i in Game.buffs) {
+		let buff = Game.buffs[i];
+		OmniCookies.buffsById[buff.id] = buff;
+		let onmouseover = function() {
+			if (!Game.mouseDown) {
+				Game.setOnCrate(this);
+				Game.tooltip.dynamic=1;
+				Game.tooltip.draw(this, function(){return OmniCookies.GetBuffTooltipFunc(buff.id)();},'left');
+				Game.tooltip.wobble();
+			}
+		}
+		onmouseover = onmouseover.toString().replace('function() {', '').replace(/}$/, '').replace('buff.id', buff.id);
+		Game.buffsL.getElementsByClassName('crate enabled buff')[buff.id].setAttribute('onmouseover', onmouseover);
+	}
 
 	Game.gainBuff = OmniCookies.replaceCode(Game.gainBuff, [
 		{   // Place buff somewhere we can access it later
@@ -209,10 +271,25 @@ OmniCookies.patchBuffTooltips = function() {
 		}
 	]);
 
+	// Create a test for header width
+	var div = document.createElement('div');
+	div.className = 'prompt';
+	var test = document.createElement('h3');
+	div.id = 'OmniCookies_width_test';
+	div.appendChild(test);
+	div.style.visibility = 'hidden';
+	document.getElementById('game').appendChild(div);
+
 	OmniCookies.GetBuffTooltipFunc = function(buffId) {
 		return function() {
 			let buff = OmniCookies.buffsById[buffId];
-			let text = '<div class="prompt" style="min-width:200px;text-align:center;font-size:11px;margin:8px 0px;"><h3>'+buff.name+'</h3>'+'<div class="line"></div>'+buff.desc;
+
+			// Use the test header to create buffer room for the feather images
+			test.textContent = buff.name;
+			let width = Math.max(200, test.clientWidth + 78);
+
+			let buffDesc = buff.desc.replace(Game.sayTime(buff.maxTime,-1),'$&');
+			let text = '<div class="prompt" style="white-space:nowrap;min-width:'+width+'px;text-align:center;font-size:11px;margin:8px 0px;"><h3>'+buff.name+'</h3>'+'<div class="line"></div>'+buffDesc;
 			if(OmniCookies.settings.buffTooltipDuration) 
 				text += '<div class="line"></div>'+Game.sayTime(buff.time,-1)+' left';
 			text += '</div>';
@@ -220,6 +297,7 @@ OmniCookies.patchBuffTooltips = function() {
 		};
 	}
 
+	// Patch Stretch Time success roll to update buff description
 	let minigame = Game.Objects['Wizard tower'].minigame;
 	minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
 		{
@@ -239,8 +317,7 @@ OmniCookies.init = function() {
 	OmniCookies.smoothBuildings();
 	OmniCookies.patchBuildings();
 	OmniCookies.patchBuffTooltips();
-	
-	Game.registerHook('logic', OmniCookies.customOptionsMenu);
+	OmniCookies.patchUpdateMenu();
 
 	Game.Notify(`Loaded ${OmniCookies.name} ${OmniCookies.version}`,'',0,3);
 }
@@ -263,6 +340,7 @@ OmniCookies.load = function(str) {
 	}
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
+	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;
 }
 
 //#endregion

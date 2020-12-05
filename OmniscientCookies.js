@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.2'
+	version: 'v1.2.3'
 };
 
 OmniCookies.settings = {
@@ -8,7 +8,9 @@ OmniCookies.settings = {
 	scrollingBuildings: true,
 	smoothBuildings: true,
 	buffTooltipDuration: true,
-	betterBuildingTooltips: true
+	betterBuildingTooltips: true,
+	betterGrandmas: true,
+	separateTechs: true
 }
 
 //==============================//
@@ -79,7 +81,7 @@ OmniCookies.customOptionsMenu = function() {
 
 	let title = document.createElement('div');
 	title.className = 'title';
-	title.textContent = 'Omniscient Cookies';
+	title.textContent = `${OmniCookies.name} ${OmniCookies.version}`;
 	frag.appendChild(title);
 
 	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
@@ -111,6 +113,22 @@ OmniCookies.customOptionsMenu = function() {
 		}
 	));
 
+	frag.appendChild(OmniCookies.makeButton('betterGrandmas',
+		'Grandma fixes ON', 'Grandma fixes OFF',
+		'(text and ordering fixes for grandma synergy upgrades; disabling requires refresh)',
+		function() {
+			if(!OmniCookies.patchedGrandmas) OmniCookies.patchGrandmaUpgrades();
+		}
+	));
+
+	frag.appendChild(OmniCookies.makeButton('separateTechs',
+		'Separate techs ON', 'Separate techs OFF',
+		'(gives tech upgrades their own upgrade category under cookies)',
+		function() {
+			if(!OmniCookies.patchedTechUpgrades) OmniCookies.patchTechUpgradeMenu();
+		}
+	));
+
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
 }
 
@@ -119,7 +137,7 @@ OmniCookies.patchUpdateMenu = function() {
 	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [
 		{
 			pattern: /}$/,
-			replacement: 'OmniCookies.customOptionsMenu()$&'
+			replacement: 'OmniCookies.customOptionsMenu();$&'
 		}
 	]);
 }
@@ -307,6 +325,45 @@ OmniCookies.patchBuffTooltips = function() {
 	]);
 }
 
+// Adds a line break to grandma synergy upgrades
+// Fixes the ordering of grandma upgrades in the stats menu
+OmniCookies.patchGrandmaUpgrades = function() {
+	OmniCookies.patchedGrandmas = true;
+
+	for(let i of Game.GrandmaSynergies) {
+		let upgrade = Game.Upgrades[i];
+		upgrade.desc = upgrade.desc.replace(/(efficient\.) /, '$1<br>');
+	}
+
+	Game.Upgrades["Cosmic grandmas"].order += 0.2;
+	Game.Upgrades["Transmuted grandmas"].order += 0.2;
+	Game.Upgrades["Altered grandmas"].order += 0.2;
+	Game.Upgrades["Grandmas' grandmas"].order += 0.2;
+}
+
+// Creates a new area for Tech upgrades under the Cookie upgrades
+OmniCookies.patchTechUpgradeMenu = function() {
+	OmniCookies.patchedTechUpgrades = true;
+
+	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [
+		{   // Declare techUpgrades var
+			pattern: 'var cookieUpgrades=\'\';',
+			replacement: '$&\nvar techUpgrades = \'\''
+		},
+		{   // Redirect tech upgrades to the new accumulator string
+			pattern: 'else if (me.pool!=\'toggle\'',
+			replacement: 'else if (OmniCookies.settings.separateTechs && me.pool == \'tech\') techUpgrades+=str2;\n$&'
+		},
+		{   // Display the new category
+			pattern: 'cookieUpgrades+\'</div>\'):\'\')+',
+			replacement: `$&
+				(techUpgrades!=''?('<div class="listing"><b>Technologies</b></div>'+
+				'<div class="listing crateBox">'+techUpgrades+'</div>'):'')+
+			`
+		}
+	]);
+}
+
 //#endregion
 //==============================//
 
@@ -341,6 +398,8 @@ OmniCookies.load = function(str) {
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
 	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;
+	OmniCookies.settings.betterGrandmas ? OmniCookies.patchGrandmaUpgrades() : null;
+	OmniCookies.settings.separateTechs ? OmniCookies.patchTechUpgradeMenu() : null;
 }
 
 //#endregion

@@ -311,28 +311,31 @@ OmniCookies.patchBuildings = function() {
 // Patches building tooltips to look a bit better in some cases
 OmniCookies.patchBuildingTooltips = function() {
 	OmniCookies.patchedBuildingTooltips = true;
+	let tooltipPattern = [
+		{
+			pattern: 'if (synergiesStr!=\'\') synergiesStr+=\', \';',
+			replacement: 'synergiesStr += \'<br>&nbsp;&nbsp;&nbsp;&nbsp;- \''
+		},
+		{
+			pattern: 'synergiesStr+=i+\' +\'+Beautify(synergiesWith[i]*100,1)+\'%\';',
+			replacement: 'synergiesStr+=i+\' <b>+\'+Beautify(synergiesWith[i]*100,1)+\'%</b>\';'
+		},
+		{
+			pattern: 'synergiesStr=\'...also boosting some other buildings : \'+synergiesStr+\' - all',
+			replacement: 'synergiesStr=\'...also boosting some other buildings: \'+synergiesStr+\'<br>&bull; all'
+		},
+		{
+			pattern: '<div class="data"',
+			replacement: '$& style="white-space:nowrap;"'
+		}
+	];
 
 	for(var i in Game.Objects) {
 		var building = Game.Objects[i];
-		building.tooltip = OmniCookies.replaceCode(building.tooltip, [
-			{
-				pattern: 'if (synergiesStr!=\'\') synergiesStr+=\', \';',
-				replacement: 'synergiesStr += \'<br>&nbsp;&nbsp;&nbsp;&nbsp;- \''
-			},
-			{
-				pattern: 'synergiesStr+=i+\' +\'+Beautify(synergiesWith[i]*100,1)+\'%\';',
-				replacement: 'synergiesStr+=i+\' <b>+\'+Beautify(synergiesWith[i]*100,1)+\'%</b>\';'
-			},
-			{
-				pattern: 'synergiesStr=\'...also boosting some other buildings : \'+synergiesStr+\' - all',
-				replacement: 'synergiesStr=\'...also boosting some other buildings: \'+synergiesStr+\'<br>&bull; all'
-			},
-			{
-				pattern: '<div class="data"',
-				replacement: '$& style="white-space:nowrap;"'
-			}
-		]);
+		building.tooltip = OmniCookies.replaceCode(building.tooltip, tooltipPattern);
 	}
+
+	Game.Object = OmniCookies.replaceCode(Game.Object, tooltipPattern);
 }
 
 // Patches buff tooltips to show remaining time

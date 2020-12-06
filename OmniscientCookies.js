@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.3'
+	version: 'v1.2.4'
 };
 
 OmniCookies.settings = {
@@ -10,7 +10,10 @@ OmniCookies.settings = {
 	buffTooltipDuration: true,
 	betterBuildingTooltips: true,
 	betterGrandmas: true,
-	separateTechs: true
+	separateTechs: true,
+	buildingsBypassFancy: false,
+	cursorsBypassFancy: false,
+	optimizeBuildings: false
 }
 
 //==============================//
@@ -129,6 +132,21 @@ OmniCookies.customOptionsMenu = function() {
 		}
 	));
 
+	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
+		'Buildings always fancy ON', 'Buildings always fancy OFF',
+		'(buildings are drawn at normal speed regardless of the Fancy setting)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
+		'Cursors always fancy ON', 'Cursors always fancy OFF',
+		'(cursors are animated regardless of the Fancy setting)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
+		'Buildings draw smart ON', 'Buildings draw smart OFF',
+		'(experimental; buildings attempt to skip unnecessary draw frames)'
+	));
+
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
 }
 
@@ -171,57 +189,123 @@ OmniCookies.smoothBuildings = function() {
 
 // Patches buildings to support scrolling feature
 OmniCookies.patchBuildings = function() {
-	for(var i in Game.Objects) {
-		var building = Game.Objects[i];
-		building.scrollOffX = 0;
-		building.lastRandX = 0;
-		building.lastRandY = 0;
-		building.draw = OmniCookies.replaceCode(building.draw, [
-			{   // Force buildings to always resize the canvas
-				pattern: 'if \(this.toResize\)',
-				replacement: 'if (true)'
-			},
-			{   // Scroll the background with the scroll offset
-				pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
-				replacement: '$&,-Math.floor(this.scrollOffX)'
-			},
-			{   // Modify building image bounds based on scroll offset
-				pattern: 'var maxI=Math.floor(this.canvas.width',
-				replacement: 'var minI=Math.max(0, Math.floor((-50 + this.scrollOffX) / (w/rows)));\nvar maxI=Math.floor((this.canvas.width + 50 + this.scrollOffX)'
-			},
-			{   // Reset sprites
-				pattern: 'var i=this.pics.length;',
-				replacement: 'this.pics = [];\nvar i=minI;'
-			},
-			{   // Offset sprites
-				pattern: "var usedPic=(typeof(pic)=='string'?pic:pic(this,i));",
-				replacement: "x-=this.scrollOffX;\n$&"
-			},
-			{   // Scroll when mouse hovers over outer 100px of building view
-				pattern: 'var selected=-1;',
-				replacement: `
-					var speed = 20;
-					if(!OmniCookies.settings.smoothBuildings) speed *= 3;
-					if(this.mousePos[0] >= (this.canvas.width) - 100 && maxI <= this.amount + rows * 3) {
-						this.scrollOffX += speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100);
-					}
-					if(this.mousePos[0] <= 100 && this.scrollOffX > 0) {
-						this.scrollOffX -= speed * (1 - this.mousePos[0] / 100);
-					}
-					if(this.scrollOffX < 0 || !OmniCookies.settings.scrollingBuildings) this.scrollOffX = 0;
-					$&`
-			},
-			{   // Reimplement delay on grandma hover shake
-				pattern: 'ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2));',
-				replacement: `
-					if(Game.drawT%3==0) {
-						this.lastRandX = Math.random()*4;
-						this.lastRandY = Math.random()*4;
-					}
-					ctx.drawImage(sprite,Math.floor(pic.x+this.lastRandX-2),Math.floor(pic.y+this.lastRandY-2));`
-			}
-		]);
+	let drawPattern = [
+		{   // Resize the canvas when it actually needs to
+			pattern: 'if \(this.toResize\)',
+			replacement: 'if (this.toResize || this.canvas.width != this.canvas.clientWidth || this.canvas.height != this.canvas.clientHeight)'
+		},
+		{   // Force draw on resize
+			pattern: 'this.toResize=false;',
+			replacement: '$&;this.forceDraw=true;'
+		},
+		{   // Do some tracking and determine whether this canvas actually needs to redraw
+			pattern: `if (typeof(bg)=='string') ctx.fillPattern`,
+			replacement: `
+				if(OmniCookies.settings.optimizeBuildings && !this.hasUnloadedImages && !this.forceDraw && !this.lastMouseOn && !this.mouseOn && (this.lastAmount == this.amount)) return;
+				this.forceDraw = false;
+				this.lastAmount = this.amount;
+				this.lastMouseOn = this.mouseOn;
+				this.hasUnloadedImages = Game.Loader.assetsLoaded.indexOf(this.art.bg) == -1;
+				$&`
+		},
+		{   // Check for unloaded building pics
+			pattern: 'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
+			replacement: '$&\nthis.hasUnloadedImages = this.hasUnloadedImages || usedPic == Game.Loader.blank;'
+		},
+		{   // Scroll the background with the scroll offset
+			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
+			replacement: '$&,-Math.floor(this.scrollOffX)'
+		},
+		{   // Modify building image bounds based on scroll offset
+			pattern: 'var maxI=Math.floor(this.canvas.width',
+			replacement: 'var minI=Math.max(0, Math.floor((-50 + this.scrollOffX) / (w/rows)));\nvar maxI=Math.floor((this.canvas.width + 50 + this.scrollOffX)'
+		},
+		{   // Reset sprites
+			pattern: 'var i=this.pics.length;',
+			replacement: 'this.pics = [];\nvar i=minI;'
+		},
+		{   // Offset sprites
+			pattern: "var usedPic=(typeof(pic)=='string'?pic:pic(this,i));",
+			replacement: "x-=this.scrollOffX;\n$&"
+		},
+		{   // Scroll when mouse hovers over outer 100px of building view
+			pattern: 'var selected=-1;',
+			replacement: `
+				var speed = 20;
+				if(!OmniCookies.settings.smoothBuildings) speed *= 3;
+				if(this.mousePos[0] >= (this.canvas.width) - 100 && maxI <= this.amount + rows * 3) {
+					this.scrollOffX += speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100);
+				}
+				if(this.mousePos[0] <= 100 && this.scrollOffX > 0) {
+					this.scrollOffX -= speed * (1 - this.mousePos[0] / 100);
+				}
+				if(this.scrollOffX < 0 || !OmniCookies.settings.scrollingBuildings) this.scrollOffX = 0;
+				$&`
+		},
+		{   // Reimplement delay on grandma hover shake
+			pattern: 'ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2));',
+			replacement: `
+				if(Game.drawT%3==0) {
+					this.lastRandX = Math.random()*4;
+					this.lastRandY = Math.random()*4;
+				}
+				ctx.drawImage(sprite,Math.floor(pic.x+this.lastRandX-2),Math.floor(pic.y+this.lastRandY-2));`
+		}
+	];
+	let mutePattern = [
+		{   // Force draw on unmute
+			pattern: 'this.muted=val;',
+			replacement: '$&\nthis.forceDraw=true;'
+		}
+	];
+	let redrawPattern = [
+		{   // Force draw on "redraw"
+			pattern: 'me.pics=[];',
+			replacement: `$&
+				if(OmniCookies.settings.optimizeBuildings) {
+					me.forceDraw = true;
+				}
+			`
+		}
+	];
+
+	for(let i in Game.Objects) {
+		let building = Game.Objects[i];
+		if(building.id != 0) {
+			building.scrollOffX = 0;
+			building.lastRandX = 0;
+			building.lastRandY = 0;
+			building.lastOffX = 0;
+			building.lastMouseOn = building.mouseOn;
+			building.lastAmount = building.amount;
+			building.hasUnloadedImages = true;
+			building.forceDraw = true;
+		
+			building.draw = OmniCookies.replaceCode(building.draw, drawPattern);
+			building.mute = OmniCookies.replaceCode(building.mute, mutePattern);
+			building.redraw = OmniCookies.replaceCode(building.redraw, redrawPattern);
+		}
 	};
+
+	// Inject into Object to affect all future building types
+	Game.Object = OmniCookies.replaceCode(Game.Object, drawPattern);
+	Game.Object = OmniCookies.replaceCode(Game.Object, [
+		{   // Define variables
+			pattern: '//building canvas',
+			replacement: `
+				this.scrollOffX = 0;
+				this.lastRandX = 0;
+				this.lastRandY = 0;
+				this.lastOffX = 0;
+				this.lastMouseOn = this.mouseOn;
+				this.lastAmount = this.amount;
+				this.hasUnloadedImages = true;
+				this.forceDraw = true;
+			$&`
+		}
+	]);
+	Game.Object = OmniCookies.replaceCode(Game.Object, mutePattern);
+	Game.Object = OmniCookies.replaceCode(Game.Object, redrawPattern);
 }
 
 // Patches building tooltips to look a bit better in some cases
@@ -364,6 +448,26 @@ OmniCookies.patchTechUpgradeMenu = function() {
 	]);
 }
 
+// Allows buildings to bypass the Fancy graphics setting
+OmniCookies.patchFancyBuildings = function() {
+	Game.Draw = OmniCookies.replaceCode(Game.Draw, [
+		{
+			pattern: 'if (Game.prefs.animate && ((Game.prefs.fancy && Game.drawT%1==0)',
+			replacement: 'if (Game.prefs.animate && (((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy) && Game.drawT%1==0)'
+		}
+	]);
+}
+
+// Allows cursors to bypass the Fancy graphics setting
+OmniCookies.patchFancyCursors = function() {
+	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
+		{
+			pattern: /(var fancy=Game\.prefs\.fancy)(;)/,
+			replacement: '$1 || OmniCookies.settings.cursorsBypassFancy$2'
+		}
+	]);
+}
+
 //#endregion
 //==============================//
 
@@ -375,6 +479,8 @@ OmniCookies.init = function() {
 	OmniCookies.patchBuildings();
 	OmniCookies.patchBuffTooltips();
 	OmniCookies.patchUpdateMenu();
+	OmniCookies.patchFancyBuildings();
+	OmniCookies.patchFancyCursors();
 
 	Game.Notify(`Loaded ${OmniCookies.name} ${OmniCookies.version}`,'',0,3);
 }

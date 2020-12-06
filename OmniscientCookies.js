@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.4'
+	version: 'v1.2.5'
 };
 
 OmniCookies.settings = {
@@ -11,10 +11,19 @@ OmniCookies.settings = {
 	betterBuildingTooltips: true,
 	betterGrandmas: true,
 	separateTechs: true,
+	enhancedBulk: true,
 	buildingsBypassFancy: false,
 	cursorsBypassFancy: false,
-	optimizeBuildings: false
+	optimizeBuildings: false,
+	stockValueData: true,
+	dangerousStocks: false
 }
+
+OmniCookies.saveData = {}
+OmniCookies.defaultSave = function() {
+	OmniCookies.saveData.stockAverages = []
+}
+OmniCookies.defaultSave();
 
 //==============================//
 //#region Utilities
@@ -25,7 +34,8 @@ OmniCookies.settings = {
 // - replacement: code to replace the matched pattern with
 // Supports regex etc.
 // Replacements are applied in order
-OmniCookies.replaceCode = function(targetFunction, listReplacements) {
+OmniCookies.replaceCode = function(targetFunction, listReplacements, preEvalScript) {
+	if(preEvalScript) eval(preEvalScript);
 	let code = targetFunction.toString();
 	let newCode = code;
 	for(let i in listReplacements) {
@@ -33,8 +43,56 @@ OmniCookies.replaceCode = function(targetFunction, listReplacements) {
 		let repl = listReplacements[i].replacement;
 		newCode = newCode.replace(patt, repl);
 	}
-	return (new Function('return ' + newCode))();
+	eval('var func = '+newCode);
+	return func;
 };
+
+// Used to calculate the price and maximum buildings that can be bought from buying in bulk
+// Returns an object with:
+// - totalPrice: the total price of attempting to buy this many buildings
+// - maxPrice: the maximum price that can be currently afforded
+// - maxAmount: the maximum amount of buildings that can be currently afforded
+OmniCookies.calcMaxBuyBulk = function(building, amount) {
+	let totalPrice = 0;
+	let maxPrice = 0;
+	let maxAmount = 0;
+	if(amount == -1) amount = Infinity;
+
+	// don't crash the game if you have infinite cookies
+	if(Game.cookies == Infinity && amount == Infinity) {
+		return { totalPrice: Infinity, maxPrice: Infinity, maxAmount: amount };
+	}
+
+	for (let i = building.amount; i < building.amount + amount; i++)
+	{
+		let price = building.basePrice * Math.pow(Game.priceIncrease, Math.max(0, i-building.free));
+		price = Game.modifyBuildingPrice(building, price);
+		totalPrice += price;
+		if(Game.cookies >= Math.ceil(totalPrice)) {
+			maxPrice = totalPrice;
+			maxAmount++;
+		} else if(amount == Infinity) {
+			totalPrice = Infinity;
+			break;
+		}
+	}
+	
+	return {
+		totalPrice: Math.ceil(totalPrice),
+		maxPrice: Math.ceil(maxPrice),
+		maxAmount: maxAmount
+	};
+}
+
+OmniCookies.loadData = function(data, into) {
+	if(data) {
+		for(key of Object.keys(data)) {
+			if(key in into) {
+				into[key] = data[key];
+			}
+		}
+	}
+}
 
 //#endregion
 //==============================//
@@ -132,6 +190,12 @@ OmniCookies.customOptionsMenu = function() {
 		}
 	));
 
+	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
+		'Enhanced bulk ON', 'Enhanced bulk OFF',
+		'(allows partial and maximum bulk purchases)',
+		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
+	));
+
 	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
 		'Buildings always fancy ON', 'Buildings always fancy OFF',
 		'(buildings are drawn at normal speed regardless of the Fancy setting)'
@@ -145,6 +209,16 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
 		'Buildings draw smart ON', 'Buildings draw smart OFF',
 		'(experimental; buildings attempt to skip unnecessary draw frames)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('stockValueData',
+		'Stock value data ON', 'Stock value data OFF',
+		'(displays information about how profitable your stocks are)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
+		'Dangerous stocks ON', 'Dangerous stocks OFF',
+		'(stock market affects total cookies earned)'
 	));
 
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
@@ -471,6 +545,202 @@ OmniCookies.patchFancyCursors = function() {
 	]);
 }
 
+OmniCookies.patchBuySellBulk = function() {
+	let rebuildPattern = [
+		{
+			pattern: `l('productPriceMult'+me.id).textContent=(Game.buyBulk>1)?('x'+Game.buyBulk+' '):'';`,
+			replacement: `
+				if(OmniCookies.settings.enhancedBulk) {
+					let bulkAmount = -1;
+					let bulkPrice = -1;
+					if(Game.buyMode == -1) {
+						bulkAmount = (Game.buyBulk > -1) ? Math.min(Game.buyBulk, me.amount) : me.amount;
+					} else {
+						let bulk = OmniCookies.calcMaxBuyBulk(me, Game.buyBulk);
+						bulkAmount = bulk.maxAmount;
+						bulkPrice = bulk.maxPrice;
+					}
+					l('productPriceMult'+me.id).textContent = bulkAmount > 1 ? 'x' + bulkAmount + ' ' : '';
+				} else {
+					$&
+				}
+			`
+		}
+	];
+	let refreshPattern = [
+		{   // Set bulk buy price to maximum bulk price
+			pattern: `if (Game.buyMode==1) this.bulkPrice=this.getSumPrice(Game.buyBulk);`,
+			replacement: `if (Game.buyMode==1) {
+				if(OmniCookies.settings.enhancedBulk) {
+					let bulk = OmniCookies.calcMaxBuyBulk(this,Game.buyBulk);
+					this.bulkPrice = bulk.maxPrice > 0 ? bulk.maxPrice : this.price;
+				} else {
+					this.bulkPrice=this.getSumPrice(Game.buyBulk);
+				}
+			}`
+		},
+		{   // Sell ALL buildings, not only up to 1000
+			pattern: `else if (Game.buyMode==-1 && Game.buyBulk==-1) this.bulkPrice=this.getReverseSumPrice(1000);`,
+			replacement: `else if (Game.buyMode==-1 && Game.buyBulk==-1) this.bulkPrice=this.getReverseSumPrice(OmniCookies.settings.enhancedBulk ? this.amount : 1000);`
+		}
+	];
+
+	for(let i in Game.Objects) {
+		let building = Game.Objects[i];
+
+		building.rebuild = OmniCookies.replaceCode(building.rebuild, rebuildPattern);
+		building.refresh = OmniCookies.replaceCode(building.refresh, refreshPattern);
+	}
+
+	Game.Object = OmniCookies.replaceCode(Game.Object, rebuildPattern);
+	Game.Object = OmniCookies.replaceCode(Game.Object, refreshPattern);
+
+	Game.storeBulkButton = OmniCookies.replaceCode(Game.storeBulkButton, [
+		{   // Allow using max button in buy mode
+			pattern: `if (Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`,
+			replacement: `if (!OmniCookies.settings.enhancedBulk && Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`
+		},
+		{   // Max button is always visible
+			pattern: `l('storeBulkMax').style.visibility='hidden';`,
+			replacement: `if(!OmniCookies.settings.enhancedBulk) $&`
+		}
+	]);
+	
+	
+	OmniCookies.updateBulkAll();
+}
+
+// Updates the bulk buy selection for when the option is toggled
+OmniCookies.updateBulkAll = function() {
+	if(Game.buyMode == 1) {
+		if(Game.buyBulk == -1 && !OmniCookies.settings.enhancedBulk) Game.storeBulkButton(4);
+		l('storeBulkMax').style.visibility = OmniCookies.settings.enhancedBulk ? 'visible' : 'hidden';
+	}
+	l('storeBulkMax').textContent = OmniCookies.settings.enhancedBulk ? 'ALL' : 'all';
+	Game.RefreshStore();
+}
+
+// Fix stock market to use established cookie manipulation options
+// You can now lose some of your earned cookies this way - or gain them!
+OmniCookies.patchDangerousStocks = function() {
+	OmniCookies.patchedDangerousStocks = true;
+
+	let stockMarket = Game.Objects['Bank'].minigame;
+	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+		{   // Use Dissolve instead of Spend (to withhold cookies earned)
+			pattern: `Game.Spend(cost*n);`,
+			replacement: `
+				if(OmniCookies.settings.dangerousStocks) {
+					Game.Dissolve(cost*n);
+				} else {
+					$&
+				}
+			`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+		{   // Start using Game.Earn again (to reinstate cookies earned)
+			pattern: '//Game.Earn',
+			replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
+		},
+		{   // Stop using direct setting
+			pattern: /\tGame\.cookies/gm,
+			replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+}
+
+OmniCookies.patchStockInfo = function() {
+	let stockMarket = Game.Objects['Bank'].minigame;
+	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+		{   // Calculate new average when buying stock
+			pattern: 'return true;',
+			replacement: `
+				if(OmniCookies.settings.stockValueData) {
+					let realCostInS = costInS * overhead;
+					if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
+						OmniCookies.saveData.stockAverages[id] = {
+							avgValue: realCostInS,
+							totalValue: realCostInS*n
+						};
+					} else {
+						let avg = OmniCookies.saveData.stockAverages[id];
+						avg.totalValue += realCostInS*n;
+						avg.avgValue = avg.totalValue/me.stock;
+					}
+				}
+			$&`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+		{   // Subtract total bought stock value when selling
+			pattern: `return true;`,
+			replacement: `
+				if(OmniCookies.settings.stockValueData && OmniCookies.saveData.stockAverages[id]) {
+					let avg = OmniCookies.saveData.stockAverages[id];
+					avg.totalValue -= avg.avgValue*n;
+				}
+			$&`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+	stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
+		{   // Draw line for profit threshold
+			pattern: /}$/,
+			replacement: `
+				if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
+					let me = M.goodsById[M.hoverOnGood];
+					if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
+						ctx.strokeStyle='#00ff00'; // green
+						ctx.beginPath();
+						let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
+						ctx.moveTo(width-1, lineHeight);
+						ctx.lineTo(width-span*rows-1, lineHeight);
+						ctx.stroke();
+					}
+				}
+			$&`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+	stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
+		{
+			pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
+			replacement: `
+				if(OmniCookies.settings.stockValueData) {
+					if(!me.avgL) {
+						let avgSpan = document.createElement('span');
+						avgSpan.id = 'bankGood-'+me.id+'-avg';
+						avgSpan.innerHTML = '(-)';
+						document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
+						me.avgL = avgSpan;
+					}
+					
+					if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
+						me.avgL.style.visibility = 'visible';
+						let avg = OmniCookies.saveData.stockAverages[me.id];
+						me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
+						if(avg.avgValue < me.val) {
+							me.avgL.classList.remove('red');
+							me.avgL.classList.add('green');
+						} else {
+							me.avgL.classList.remove('green');
+							me.avgL.classList.add('red');
+						}
+					} else {
+						me.avgL.style.visibility = 'hidden';
+						me.avgL.innerHTML = '';
+					}
+				} else {
+					if(me.avgL) {
+						me.avgL.remove();
+						me.avgL = undefined;
+					}
+				}
+			$&`
+		}
+	], `var M = Game.Objects['Bank'].minigame;`);
+	stockMarket.toRedraw = 1;
+}
+
 //#endregion
 //==============================//
 
@@ -484,26 +754,37 @@ OmniCookies.init = function() {
 	OmniCookies.patchUpdateMenu();
 	OmniCookies.patchFancyBuildings();
 	OmniCookies.patchFancyCursors();
+	OmniCookies.patchStockInfo();
+	OmniCookies.patchDangerousStocks();
+
+	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
+	Game.registerHook('logic', function() {
+		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
+	});
+
+	// Reset stock average data when resetting
+	Game.registerHook('reset', function(hard) {
+		OmniCookies.defaultSave();
+	});
 
 	Game.Notify(`Loaded ${OmniCookies.name} ${OmniCookies.version}`,'',0,3);
 }
 
 OmniCookies.save = function() {
 	return JSON.stringify({
-		settings: OmniCookies.settings
+		settings: OmniCookies.settings,
+		saveData: OmniCookies.saveData
 	});
 }
 
 OmniCookies.load = function(str) {
 	var data = JSON.parse(str);
 	var settings = data.settings;
-	if(settings) {
-		for(key of Object.keys(settings)) {
-			if(key in OmniCookies.settings) {
-				OmniCookies.settings[key] = settings[key];
-			}
-		}
-	}
+	var saveData = data.saveData;
+	OmniCookies.loadData(settings, OmniCookies.settings);
+	OmniCookies.loadData(saveData, OmniCookies.saveData);
+
+	OmniCookies.patchBuySellBulk();
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
 	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;

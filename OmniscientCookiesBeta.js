@@ -801,6 +801,7 @@ OmniCookies.init = function() {
 
 OmniCookies.save = function() {
 	OmniCookies.cryosleepWrinklers();
+	console.log(JSON.stringify(OmniCookies.saveData));
 	return JSON.stringify({
 		settings: OmniCookies.settings,
 		saveData: OmniCookies.saveData
@@ -808,6 +809,7 @@ OmniCookies.save = function() {
 }
 
 OmniCookies.load = function(str) {
+	console.log(str);
 	var data = JSON.parse(str);
 	var settings = data.settings;
 	var saveData = data.saveData;

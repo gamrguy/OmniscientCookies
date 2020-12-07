@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 10'
+	version: 'v1.2.5 BETA 11'
 };
 
 OmniCookies.settings = {
@@ -15,7 +15,7 @@ OmniCookies.settings = {
 	buildingsBypassFancy: false,
 	cursorsBypassFancy: false,
 	optimizeBuildings: false,
-	preserveWrinklers: true,
+	preserveWrinklers: false,
 	stockValueData: true,
 	dangerousStocks: false
 }
@@ -215,7 +215,7 @@ OmniCookies.customOptionsMenu = function() {
 
 	frag.appendChild(OmniCookies.makeButton('preserveWrinklers',
 		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
-		'(attempts to preserve all wrinkler data on game save/load)'
+		'(experimental; attempts to preserve all wrinkler data on game save/load)'
 	));
 
 	frag.appendChild(OmniCookies.makeButton('stockValueData',
@@ -755,14 +755,11 @@ OmniCookies.cryosleepWrinklers = function() {
 	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : null;
 }
 OmniCookies.thawWrinklers = function() {
-	console.log(OmniCookies.settings.preserveWrinklers+' '+Boolean(OmniCookies.saveData.frozenWrinks));
 	if(OmniCookies.settings.preserveWrinklers && OmniCookies.saveData.frozenWrinks) {
 		let realWrinks = Game.wrinklers;
 		let currentWrinks = Game.SaveWrinklers();
 		Game.wrinklers = OmniCookies.saveData.frozenWrinks;
 		let thawedWrinks = Game.SaveWrinklers();
-		console.log(JSON.stringify(currentWrinks));
-		console.log(JSON.stringify(thawedWrinks));
 		for(var attr in currentWrinks) {
 			let ratio = Math.min(currentWrinks[attr]/thawedWrinks[attr], thawedWrinks[attr]/currentWrinks[attr]);
 			if(currentWrinks[attr] != thawedWrinks[attr] && ratio < 0.999) {
@@ -804,7 +801,6 @@ OmniCookies.init = function() {
 
 OmniCookies.save = function() {
 	OmniCookies.cryosleepWrinklers();
-	console.log(JSON.stringify(OmniCookies.saveData));
 	return JSON.stringify({
 		settings: OmniCookies.settings,
 		saveData: OmniCookies.saveData
@@ -812,7 +808,6 @@ OmniCookies.save = function() {
 }
 
 OmniCookies.load = function(str) {
-	console.log(str);
 	var data = JSON.parse(str);
 	var settings = data.settings;
 	var saveData = data.saveData;

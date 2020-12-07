@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5'
+	version: 'v1.2.5 BETA 5'
 };
 
 OmniCookies.settings = {
@@ -754,6 +754,7 @@ OmniCookies.cryosleepWrinklers = function() {
 	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : undefined;
 }
 OmniCookies.thawWrinklers = function() {
+	console.log(OmniCookies.settings.preserveWrinklers+' '+Boolean(OmniCookies.saveData.frozenWrinks));
 	if(OmniCookies.settings.preserveWrinklers && OmniCookies.saveData.frozenWrinks) {
 		let realWrinks = Game.wrinklers;
 		let currentWrinks = Game.SaveWrinklers();
@@ -817,12 +818,12 @@ OmniCookies.load = function(str) {
 	OmniCookies.loadData(saveData, OmniCookies.saveData);
 
 	OmniCookies.patchBuySellBulk();
+	OmniCookies.thawWrinklers();
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
 	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;
 	OmniCookies.settings.betterGrandmas ? OmniCookies.patchGrandmaUpgrades() : null;
 	OmniCookies.settings.separateTechs ? OmniCookies.patchTechUpgradeMenu() : null;
-	OmniCookies.thawWrinklers();
 }
 
 //#endregion

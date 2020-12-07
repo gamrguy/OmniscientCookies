@@ -78,6 +78,13 @@ Attempts to drastically reduce the performance impact of drawing
 the building displays by skipping unnecessary draw frames.  
 May improve performance with no cost to visuals.
 
+Wrinkler preservation (experimental; disabled by default)
+---------------------------------------------------------
+Normally, the game only saves the overall stats of your wrinklers.
+When you refresh the game, wrinklers are placed in a defined order with cookies evenly split between them.
+This setting intends to restore all of the wrinkler stats.
+To prevent wrinkler duplication, this attempts to only apply if the difference between versions is within 0.1%.
+
 Quality of Life enhancements
 ============================
 

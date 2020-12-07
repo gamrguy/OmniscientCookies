@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 18'
+	version: 'v1.2.5 BETA 19'
 };
 
 OmniCookies.settings = {
@@ -17,6 +17,7 @@ OmniCookies.settings = {
 	wrinklersBypassFancy: false,
 	optimizeBuildings: false,
 	preserveWrinklers: false,
+	detailedGods: true,
 	stockValueData: true,
 	dangerousStocks: false
 }
@@ -220,6 +221,11 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('preserveWrinklers',
 		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('detailedGods',
+		'Detailed gods ON', 'Detailed gods OFF',
+		'(adds more detailed information on some Pantheon gods)'
 	));
 
 	frag.appendChild(OmniCookies.makeButton('stockValueData',
@@ -500,15 +506,6 @@ OmniCookies.patchBuffTooltips = function() {
 			clearInterval(patchGrimoire);
 		}
 	}, 250);
-
-	// Fix building debuff desc
-	let debuffType = Game.buffTypesByName['building debuff'];
-	debuffType.func = OmniCookies.replaceCode(debuffType.func, [
-		{
-			pattern: /\(Math\.\w+\(pow\*100-100\)\)/,
-			replacement: `(Math.round((1-(1/pow))*100))`
-		}
-	]);
 }
 
 // Adds a line break to grandma synergy upgrades
@@ -657,6 +654,46 @@ OmniCookies.patchBuySellBulk = function() {
 	OmniCookies.updateBulkAll();
 }
 
+OmniCookies.patchPantheonInfo = function() {
+	let patchPantheonInfoInterval = setInterval(function() {
+		if(Game.Objects['Temple'].minigame) {
+			let pantheon = Game.Objects['Temple'].minigame;
+			let functionPattern = [
+				{   // Allow functions to be used as descriptions
+					pattern: /\+me\.desc(\w+)\+/g,
+					replacement: `+((typeof me.desc$1 == 'function') ? me.desc$1() : me.desc$1)+`
+				}
+			];
+			pantheon.godTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
+				functionPattern, `var M = Game.Objects['Bank'].minigame;`);
+			pantheon.slotTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
+				functionPattern, `var M = Game.Objects['Bank'].minigame;`);
+
+			// Display Cyclius values
+			let cycliusFunc = function(interval) {
+				return function() {
+					let effect = '';
+					if(OmniCookies.settings.detailedGods) {
+						let mult = 0.15*Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2);
+						let color = mult > 0 ? 'green' : mult == 0 ? '' : 'red';
+						let sign = mult > 0 ? '+' : '';
+						effect = ` (<span class="${color}">${sign}${Beautify(mult*100,2)}% base CpS</span>)`;
+					}
+					return `Effect cycles over ${interval} hours.${effect}`;
+				}
+			}
+			let cyclius = pantheon.gods['ages'];
+			//cyclius.activeDescBackup = cyclius.activeDescFunc;
+			//cyclius.activeDescFunc = false;
+			cyclius.desc1 = cycliusFunc(3);
+			cyclius.desc2 = cycliusFunc(12);
+			cyclius.desc3 = cycliusFunc(24);
+
+			clearInterval(patchPantheonInfoInterval);
+		}
+	}, 250);
+}
+
 // Updates the bulk buy selection for when the option is toggled
 OmniCookies.updateBulkAll = function() {
 	if(Game.buyMode == 1) {
@@ -688,15 +725,15 @@ OmniCookies.patchDangerousStocks = function() {
 				}
 			], `var M = Game.Objects['Bank'].minigame;`);
 			stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
-		{   // Start using Game.Earn again (to reinstate cookies earned)
-			pattern: '//Game.Earn',
-			replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
-		},
-		{   // Stop using direct setting
-			pattern: /\tGame\.cookies/gm,
-			replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
+				{   // Start using Game.Earn again (to reinstate cookies earned)
+					pattern: '//Game.Earn',
+					replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
+				},
+				{   // Stop using direct setting
+					pattern: /\tGame\.cookies/gm,
+					replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
 			clearInterval(patchStockMarket);
 		}
 	}, 250);

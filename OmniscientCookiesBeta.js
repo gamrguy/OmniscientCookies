@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 21'
+	version: 'v1.2.5 BETA 22'
 };
 
 OmniCookies.settings = {
@@ -674,10 +674,10 @@ OmniCookies.patchPantheonInfo = function() {
 				return function() {
 					let effect = '';
 					if(OmniCookies.settings.detailedGods) {
-						let mult = 0.15*Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2);
-						let color = mult > 0 ? 'green' : mult == 0 ? '' : 'red';
+						let mult = 0.15*Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2) * 100;
+						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
 						let sign = mult > 0 ? '+' : '';
-						effect = ` (<span class="${color}">${sign}${Beautify(mult*100,2)}% base CpS</span>)`;
+						effect = `(<span class="${color}" style="text-align:right;">${sign}${Beautify(mult,2)}% base CpS</span>)`;
 					}
 					return `Effect cycles over ${interval} hours.${effect}`;
 				}

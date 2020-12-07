@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 14'
+	version: 'v1.2.5 BETA 15'
 };
 
 OmniCookies.settings = {
@@ -488,13 +488,18 @@ OmniCookies.patchBuffTooltips = function() {
 	}
 
 	// Patch Stretch Time success roll to update buff description
-	let minigame = Game.Objects['Wizard tower'].minigame;
-	minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
-		{
-			pattern: 'me.maxTime+=gain;',
-			replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+	let patchGrimoire = setInterval(function() {
+		let minigame = Game.Objects['Wizard tower'].minigame;
+		if(minigame) {
+			minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
+				{
+					pattern: 'me.maxTime+=gain;',
+					replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+				}
+			]);
+			clearInterval(patchGrimoire);
 		}
-	]);
+	}, 250);
 }
 
 // Adds a line break to grandma synergy upgrades
@@ -658,20 +663,22 @@ OmniCookies.updateBulkAll = function() {
 OmniCookies.patchDangerousStocks = function() {
 	OmniCookies.patchedDangerousStocks = true;
 
-	let stockMarket = Game.Objects['Bank'].minigame;
-	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
-		{   // Use Dissolve instead of Spend (to withhold cookies earned)
-			pattern: `Game.Spend(cost*n);`,
-			replacement: `
-				if(OmniCookies.settings.dangerousStocks) {
-					Game.Dissolve(cost*n);
-				} else {
-					$&
+	let patchStockMarket = setInterval(function() {
+		let stockMarket = Game.Objects['Bank'].minigame;
+		if(stockMarket) {
+			stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+				{   // Use Dissolve instead of Spend (to withhold cookies earned)
+					pattern: `Game.Spend(cost*n);`,
+					replacement: `
+						if(OmniCookies.settings.dangerousStocks) {
+							Game.Dissolve(cost*n);
+						} else {
+							$&
+						}
+					`
 				}
-			`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
 		{   // Start using Game.Earn again (to reinstate cookies earned)
 			pattern: '//Game.Earn',
 			replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
@@ -681,97 +688,105 @@ OmniCookies.patchDangerousStocks = function() {
 			replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
 		}
 	], `var M = Game.Objects['Bank'].minigame;`);
+			clearInterval(patchStockMarket);
+		}
+	}, 250);
 }
 
 OmniCookies.patchStockInfo = function() {
-	let stockMarket = Game.Objects['Bank'].minigame;
-	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
-		{   // Calculate new average when buying stock
-			pattern: 'return true;',
-			replacement: `
-				if(OmniCookies.settings.stockValueData) {
-					let realCostInS = costInS * overhead;
-					if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
-						OmniCookies.saveData.stockAverages[id] = {
-							avgValue: realCostInS,
-							totalValue: realCostInS*n
-						};
-					} else {
-						let avg = OmniCookies.saveData.stockAverages[id];
-						avg.totalValue += realCostInS*n;
-						avg.avgValue = avg.totalValue/me.stock;
-					}
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
-		{   // Subtract total bought stock value when selling
-			pattern: `return true;`,
-			replacement: `
-				if(OmniCookies.settings.stockValueData && OmniCookies.saveData.stockAverages[id]) {
-					let avg = OmniCookies.saveData.stockAverages[id];
-					avg.totalValue -= avg.avgValue*n;
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
-		{   // Draw line for profit threshold
-			pattern: /}$/,
-			replacement: `
-				if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
-					let me = M.goodsById[M.hoverOnGood];
-					if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
-						ctx.strokeStyle='#00ff00'; // green
-						ctx.beginPath();
-						let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
-						ctx.moveTo(width-1, lineHeight);
-						ctx.lineTo(width-span*rows-1, lineHeight);
-						ctx.stroke();
-					}
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
-		{
-			pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
-			replacement: `
-				if(OmniCookies.settings.stockValueData) {
-					if(!me.avgL) {
-						let avgSpan = document.createElement('span');
-						avgSpan.id = 'bankGood-'+me.id+'-avg';
-						avgSpan.innerHTML = '(-)';
-						document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
-						me.avgL = avgSpan;
-					}
-					
-					if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
-						me.avgL.style.visibility = 'visible';
-						let avg = OmniCookies.saveData.stockAverages[me.id];
-						me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
-						if(avg.avgValue < me.val) {
-							me.avgL.classList.remove('red');
-							me.avgL.classList.add('green');
-						} else {
-							me.avgL.classList.remove('green');
-							me.avgL.classList.add('red');
+	let patchStockMarket = setInterval(function() {
+		let stockMarket = Game.Objects['Bank'].minigame;
+		if(stockMarket) {
+			stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+				{   // Calculate new average when buying stock
+					pattern: 'return true;',
+					replacement: `
+						if(OmniCookies.settings.stockValueData) {
+							let realCostInS = costInS * overhead;
+							if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
+								OmniCookies.saveData.stockAverages[id] = {
+									avgValue: realCostInS,
+									totalValue: realCostInS*n
+								};
+							} else {
+								let avg = OmniCookies.saveData.stockAverages[id];
+								avg.totalValue += realCostInS*n;
+								avg.avgValue = avg.totalValue/me.stock;
+							}
 						}
-					} else {
-						me.avgL.style.visibility = 'hidden';
-						me.avgL.innerHTML = '';
-					}
-				} else {
-					if(me.avgL) {
-						me.avgL.remove();
-						me.avgL = undefined;
-					}
+					$&`
 				}
-			$&`
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+				{   // Subtract total bought stock value when selling
+					pattern: `return true;`,
+					replacement: `
+						if(OmniCookies.settings.stockValueData && OmniCookies.saveData.stockAverages[id]) {
+							let avg = OmniCookies.saveData.stockAverages[id];
+							avg.totalValue -= avg.avgValue*n;
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
+				{   // Draw line for profit threshold
+					pattern: /}$/,
+					replacement: `
+						if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
+							let me = M.goodsById[M.hoverOnGood];
+							if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
+								ctx.strokeStyle='#00ff00'; // green
+								ctx.beginPath();
+								let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
+								ctx.moveTo(width-1, lineHeight);
+								ctx.lineTo(width-span*rows-1, lineHeight);
+								ctx.stroke();
+							}
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
+				{
+					pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
+					replacement: `
+						if(OmniCookies.settings.stockValueData) {
+							if(!me.avgL) {
+								let avgSpan = document.createElement('span');
+								avgSpan.id = 'bankGood-'+me.id+'-avg';
+								avgSpan.innerHTML = '(-)';
+								document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
+								me.avgL = avgSpan;
+							}
+							
+							if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
+								me.avgL.style.visibility = 'visible';
+								let avg = OmniCookies.saveData.stockAverages[me.id];
+								me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
+								if(avg.avgValue < me.val) {
+									me.avgL.classList.remove('red');
+									me.avgL.classList.add('green');
+								} else {
+									me.avgL.classList.remove('green');
+									me.avgL.classList.add('red');
+								}
+							} else {
+								me.avgL.style.visibility = 'hidden';
+								me.avgL.innerHTML = '';
+							}
+						} else {
+							if(me.avgL) {
+								me.avgL.remove();
+								me.avgL = undefined;
+							}
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.toRedraw = 1;
+			clearInterval(patchStockMarket);
 		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.toRedraw = 1;
+	}, 250);
 }
 
 // Restores wrinklers to their original positions and values

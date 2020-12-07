@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 9'
+	version: 'v1.2.5 BETA 10'
 };
 
 OmniCookies.settings = {
@@ -764,7 +764,8 @@ OmniCookies.thawWrinklers = function() {
 		console.log(JSON.stringify(currentWrinks));
 		console.log(JSON.stringify(thawedWrinks));
 		for(var attr in currentWrinks) {
-			if(currentWrinks[attr] != thawedWrinks[attr]) {
+			let ratio = Math.min(currentWrinks[attr]/thawedWrinks[attr], thawedWrinks[attr]/currentWrinks[attr]);
+			if(currentWrinks[attr] != thawedWrinks[attr] && ratio < 0.999) {
 				Game.wrinklers = realWrinks;
 				return;
 			}

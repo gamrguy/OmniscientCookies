@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 11'
+	version: 'v1.2.5 BETA 12'
 };
 
 OmniCookies.settings = {
@@ -187,9 +187,7 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('separateTechs',
 		'Separate techs ON', 'Separate techs OFF',
 		'(gives tech upgrades their own upgrade category under cookies)',
-		function() {
-			if(!OmniCookies.patchedTechUpgrades) OmniCookies.patchTechUpgradeMenu();
-		}
+		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
 	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
@@ -511,6 +509,7 @@ OmniCookies.patchGrandmaUpgrades = function() {
 
 // Creates a new area for Tech upgrades under the Cookie upgrades
 OmniCookies.patchTechUpgradeMenu = function() {
+	if(OmniCookies.patchedTechUpgrades) return;
 	OmniCookies.patchedTechUpgrades = true;
 
 	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [

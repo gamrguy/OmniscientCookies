@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 5'
+	version: 'v1.2.5 BETA 6'
 };
 
 OmniCookies.settings = {
@@ -751,7 +751,7 @@ OmniCookies.patchStockInfo = function() {
 // Checks against current wrinklers to prevent wrinkler duplication
 // Why doesn't the vanilla game do this...?
 OmniCookies.cryosleepWrinklers = function() {
-	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : undefined;
+	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : null;
 }
 OmniCookies.thawWrinklers = function() {
 	console.log(OmniCookies.settings.preserveWrinklers+' '+Boolean(OmniCookies.saveData.frozenWrinks));

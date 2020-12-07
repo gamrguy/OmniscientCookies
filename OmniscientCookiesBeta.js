@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 20'
+	version: 'v1.2.5 BETA 21'
 };
 
 OmniCookies.settings = {
@@ -657,9 +657,7 @@ OmniCookies.patchBuySellBulk = function() {
 OmniCookies.patchPantheonInfo = function() {
 	let patchPantheonInfoInterval = setInterval(function() {
 		let pantheon = Game.Objects['Temple'].minigame;
-		console.log("Pantheon: "+Boolean(pantheon));
 		if(pantheon) {
-			console.log("Patching the Pantheon!");
 			let functionPattern = [
 				{   // Allow functions to be used as descriptions
 					pattern: /\+me\.desc(\w+)\+/g,
@@ -875,6 +873,7 @@ OmniCookies.init = function() {
 	OmniCookies.patchFancyWrinklers();
 	OmniCookies.patchStockInfo();
 	OmniCookies.patchDangerousStocks();
+	OmniCookies.patchPantheonInfo();
 
 	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {

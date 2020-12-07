@@ -89,8 +89,8 @@ Additionally, this allows using the "ALL" button when buying buildings, and make
 
 Stock average value data (enabled by default)
 ---------------------------------------------
-When buying stocks, records the average value of the price you bought them at.
-You can then check this number against the current value to see whether you'll be making a profit.
+When buying stocks, records the average value of the price you bought them at.  
+You can then check this number against the current value to see whether you'll be making a profit.  
 This is also shown on the graph as a green line when hovering over a particular stock.
 
 Gameplay Modifiers

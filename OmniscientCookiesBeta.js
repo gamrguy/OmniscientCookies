@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 7'
+	version: 'v1.2.5 BETA 8'
 };
 
 OmniCookies.settings = {
@@ -23,7 +23,7 @@ OmniCookies.settings = {
 OmniCookies.saveData = {}
 OmniCookies.defaultSave = function() {
 	OmniCookies.saveData.stockAverages = [];
-	OmniCookies.frozenWrinks = null;
+	OmniCookies.frozenWrinks = [];
 }
 OmniCookies.defaultSave();
 

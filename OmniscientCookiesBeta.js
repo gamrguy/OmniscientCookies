@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 19'
+	version: 'v1.2.5 BETA 20'
 };
 
 OmniCookies.settings = {
@@ -656,8 +656,10 @@ OmniCookies.patchBuySellBulk = function() {
 
 OmniCookies.patchPantheonInfo = function() {
 	let patchPantheonInfoInterval = setInterval(function() {
-		if(Game.Objects['Temple'].minigame) {
-			let pantheon = Game.Objects['Temple'].minigame;
+		let pantheon = Game.Objects['Temple'].minigame;
+		console.log("Pantheon: "+Boolean(pantheon));
+		if(pantheon) {
+			console.log("Patching the Pantheon!");
 			let functionPattern = [
 				{   // Allow functions to be used as descriptions
 					pattern: /\+me\.desc(\w+)\+/g,

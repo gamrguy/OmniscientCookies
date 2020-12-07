@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 12'
+	version: 'v1.2.5 BETA 13'
 };
 
 OmniCookies.settings = {
@@ -14,6 +14,7 @@ OmniCookies.settings = {
 	enhancedBulk: true,
 	buildingsBypassFancy: false,
 	cursorsBypassFancy: false,
+	wrinklersBypassFancy: false,
 	optimizeBuildings: false,
 	preserveWrinklers: false,
 	stockValueData: true,
@@ -204,6 +205,11 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
 		'Cursors always fancy ON', 'Cursors always fancy OFF',
 		'(cursors are animated regardless of the Fancy setting)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
+		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
+		'(wrinklers are animated regardless of the Fancy setting)'
 	));
 
 	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
@@ -551,6 +557,15 @@ OmniCookies.patchFancyCursors = function() {
 	]);
 }
 
+OmniCookies.patchFancyWrinklers = function() {
+	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
+		{
+			pattern: /Game\.prefs\.fancy/g,
+			replacement: `OmniCookies.settings.wrinklersBypassFancy || $&`
+		}
+	]);
+}
+
 OmniCookies.patchBuySellBulk = function() {
 	let rebuildPattern = [
 		{
@@ -782,6 +797,7 @@ OmniCookies.init = function() {
 	OmniCookies.patchUpdateMenu();
 	OmniCookies.patchFancyBuildings();
 	OmniCookies.patchFancyCursors();
+	OmniCookies.patchFancyWrinklers();
 	OmniCookies.patchStockInfo();
 	OmniCookies.patchDangerousStocks();
 

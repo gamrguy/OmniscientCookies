@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 16'
+	version: 'v1.2.5 BETA 17'
 };
 
 OmniCookies.settings = {
@@ -505,7 +505,7 @@ OmniCookies.patchBuffTooltips = function() {
 	let debuffType = Game.buffTypesByName['building debuff'];
 	debuffType.func = OmniCookies.replaceCode(debuffType.func, [
 		{
-			pattern: /\(Math\..*\(pow\*100-100\)\)/,
+			pattern: /\(Math\.\w+\(pow\*100-100\)\)/,
 			replacement: `(Math.round((1-(1/pow))*100)`
 		}
 	]);

@@ -3,8 +3,8 @@ Omniscient Cookies
 
 A diverse visual and QoL mod for Cookie Clicker.
 
-There are a variety of different features, most of which are simply 
-small enhancements or tweaks that improve the gameplay without being intrusive.
+There are a variety of different features, most of which are simply  
+small enhancements or tweaks that improve the gameplay without being intrusive.  
 Nearly everything can be toggled on or off at will, though most start enabled.
 
 Using the mod

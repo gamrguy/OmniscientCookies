@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 15'
+	version: 'v1.2.5 BETA 16'
 };
 
 OmniCookies.settings = {
@@ -500,6 +500,15 @@ OmniCookies.patchBuffTooltips = function() {
 			clearInterval(patchGrimoire);
 		}
 	}, 250);
+
+	// Fix building debuff desc
+	let debuffType = Game.buffTypesByName['building debuff'];
+	debuffType.func = OmniCookies.replaceCode(debuffType.func, [
+		{
+			pattern: /\(Math\..*\(pow\*100-100\)\)/,
+			replacement: `(Math.round((1-(1/pow))*100)`
+		}
+	]);
 }
 
 // Adds a line break to grandma synergy upgrades

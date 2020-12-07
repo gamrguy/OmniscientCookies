@@ -99,5 +99,5 @@ Gameplay Modifiers
 Dangerous stocks (disabled by default)
 --------------------------------------
 In the vanilla game, buying and selling stocks has little effect on your cookies earned.  
-With this modifier, you're gambling not just your current cookies, but your earned cookies as well.
+With this modifier, you're gambling not just your current cookies, but your earned cookies as well.  
 This means you can actually *lose* ascension progress, but *gain* it as well, if you play your cards right!

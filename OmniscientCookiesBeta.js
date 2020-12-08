@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 36'
+	version: 'v1.2.5 BETA 37'
 };
 
 OmniCookies.settings = {
@@ -154,6 +154,17 @@ OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunction
 	return div;
 }
 
+OmniCookies.makeHeader = function(text) {
+	var div = document.createElement('div');
+	div.className = 'listing';
+	div.style.padding = '5px 16px';
+	div.style.opacity = '0.7';
+	div.style.fontSize = '17px';
+	div.style.fontFamily = '\"Kavoon\", Georgia, serif';
+	div.appendChild(document.createTextNode(text));
+	return div;
+}
+
 OmniCookies.customOptionsMenu = function() {
 	if(!(Game.onMenu == 'prefs')) return;
 
@@ -163,6 +174,8 @@ OmniCookies.customOptionsMenu = function() {
 	title.className = 'title';
 	title.textContent = `${OmniCookies.name} ${OmniCookies.version}`;
 	frag.appendChild(title);
+
+	frag.appendChild(OmniCookies.makeHeader("Testing testing ???"));
 
 	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
 		'Autohide center scrollbar ON', 'Autohide center scrollbar OFF',

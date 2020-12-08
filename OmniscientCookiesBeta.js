@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 25'
+	version: 'v1.2.5 BETA 26'
 };
 
 OmniCookies.settings = {
@@ -889,6 +889,24 @@ OmniCookies.init = function() {
 	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {
 		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
+
+		// wheeeee test
+		var cyclius = document.getElementById('templeGod3');
+		if(cyclius) {
+			var icon = cyclius.getElementsByClassName('usesIcon')[0];
+			if(icon.classList.contains('shadowFilter')) {
+				var div = document.createElement('div');
+				div.classList.add('templeIcon');
+				div.classList.add('shadowFilter');
+				div.style.margin = 'unset';
+				icon.classList.remove('shadowFilter');
+				icon.style.animation = 'none';
+				cyclius.removeChild(icon);
+				cyclius.appendChild(div);
+				div.appendChild(icon);
+			}
+			icon.style.transform = 'rotate('+(Game.T%30)*Math.PI+'rad)';
+		}
 	});
 
 	// Reset stock average data when resetting

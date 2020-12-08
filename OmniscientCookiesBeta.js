@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 3'
+	version: 'v1.3.0 BETA 4'
 };
 
 OmniCookies.settings = {
@@ -12,17 +12,16 @@ OmniCookies.settings = {
 	betterGrandmas: true,
 	separateTechs: true,
 	enhancedBulk: true,
-	buildingsBypassFancy: false,
-	cursorsBypassFancy: false,
-	wrinklersBypassFancy: false,
+	buildingsBypassFancy: 2,
+	cursorsBypassFancy: 2,
+	wrinklersBypassFancy: 2,
 	optimizeBuildings: false,
 	preserveWrinklers: false,
 	detailedCyclius: true,
 	zonedCyclius: false,
 	trueCyclius: false,
 	stockValueData: true,
-	dangerousStocks: false,
-	cursorsBypassFancyNum: 2
+	dangerousStocks: false
 }
 
 OmniCookies.saveData = {}
@@ -108,6 +107,10 @@ OmniCookies.loadData = function(data, into) {
 	if(data) {
 		for(key of Object.keys(data)) {
 			if(key in into) {
+				// convert from old boolean buttons to new integered buttons
+				if(typeof data[key] == 'boolean' && typeof into[key] == 'number') {
+					data[key] = data[key] ? 0 : 1;
+				}
 				into[key] = data[key];
 			}
 		}
@@ -253,17 +256,15 @@ OmniCookies.customOptionsMenu = function() {
 		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
-	gfxList.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
-		'Buildings always fancy ON', 'Buildings always fancy OFF',
-		'(buildings are drawn at normal speed regardless of the Fancy setting)'
+	gfxList.appendChild(OmniCookies.makeOptionedButton('buildingsBypassFancy',
+		'(buildings follow this setting rather than default)', [
+			{ text: 'Buildings always FANCY' },
+			{ text: 'Buildings always FAST' },
+			{ text: 'Buildings always DEFAULT', off: true }
+		]
 	));
 
-	/*gfxList.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
-		'Cursors always fancy ON', 'Cursors always fancy OFF',
-		'(cursors are animated regardless of the Fancy setting)'
-	));*/
-
-	gfxList.appendChild(OmniCookies.makeOptionedButton('cursorsBypassFancyNum',
+	gfxList.appendChild(OmniCookies.makeOptionedButton('cursorsBypassFancy',
 		'(cursors follow this setting rather than default)', [
 			{ text: 'Cursors always FANCY' },
 			{ text: 'Cursors always FAST' },
@@ -271,9 +272,12 @@ OmniCookies.customOptionsMenu = function() {
 		]
 	));
 
-	gfxList.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
-		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
-		'(wrinklers are animated regardless of the Fancy setting)'
+	gfxList.appendChild(OmniCookies.makeOptionedButton('wrinklersBypassFancy',
+		'(wrinklers follow this setting rather than default)', [
+			{ text: 'Wrinklers always FANCY' },
+			{ text: 'Wrinklers always FAST' },
+			{ text: 'Wrinklers always DEFAULT', off: true }
+		]
 	));
 
 	frag.appendChild(gfxList);

@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5'
+	version: 'v1.3.0'
 };
 
 OmniCookies.settings = {
@@ -14,14 +14,20 @@ OmniCookies.settings = {
 	enhancedBulk: true,
 	buildingsBypassFancy: false,
 	cursorsBypassFancy: false,
+	wrinklersBypassFancy: false,
 	optimizeBuildings: false,
+	preserveWrinklers: false,
+	detailedCyclius: true,
+	zonedCyclius: false,
+	trueCyclius: false,
 	stockValueData: true,
-	dangerousStocks: false
+	dangerousStocks: false,
 }
 
 OmniCookies.saveData = {}
 OmniCookies.defaultSave = function() {
-	OmniCookies.saveData.stockAverages = []
+	OmniCookies.saveData.stockAverages = [];
+	OmniCookies.saveData.frozenWrinks = null;
 }
 OmniCookies.defaultSave();
 
@@ -84,6 +90,19 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	};
 }
 
+// Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
+// Interval is how many hours each cycle is.
+// Returned value is in radians, as part of a full rotation.
+// If zonedCyclius is on, offsets the cycle as though it were GMT+1 time.
+OmniCookies.cycliusCalc = function(interval) {
+	let cycle = (Date.now()/1000/(60*60*interval));
+	if(OmniCookies.settings.zonedCyclius) {
+		cycle += (new Date().getTimezoneOffset() + 60)/60/interval
+	}
+	cycle %= 1;
+	return cycle*Math.PI*2;
+}
+
 OmniCookies.loadData = function(data, into) {
 	if(data) {
 		for(key of Object.keys(data)) {
@@ -135,6 +154,17 @@ OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunction
 	return div;
 }
 
+OmniCookies.makeHeader = function(text) {
+	var div = document.createElement('div');
+	div.className = 'listing';
+	div.style.padding = '5px 16px';
+	div.style.opacity = '0.7';
+	div.style.fontSize = '17px';
+	div.style.fontFamily = '\"Kavoon\", Georgia, serif';
+	div.appendChild(document.createTextNode(text));
+	return div;
+}
+
 OmniCookies.customOptionsMenu = function() {
 	if(!(Game.onMenu == 'prefs')) return;
 
@@ -144,6 +174,11 @@ OmniCookies.customOptionsMenu = function() {
 	title.className = 'title';
 	title.textContent = `${OmniCookies.name} ${OmniCookies.version}`;
 	frag.appendChild(title);
+
+	frag.appendChild(OmniCookies.makeHeader("Graphical tweaks"));
+
+	//==========================//
+	//#region Graphics settings
 
 	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
 		'Autohide center scrollbar ON', 'Autohide center scrollbar OFF',
@@ -159,11 +194,6 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('smoothBuildings',
 		'Smooth buildings ON', 'Smooth buildings OFF',
 		'(buildings draw every frame, instead of every 3 frames)'
-	));
-
-	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
-		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
-		'(buffs will show their current duration in their tooltip)'
 	));
 
 	frag.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
@@ -185,15 +215,7 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('separateTechs',
 		'Separate techs ON', 'Separate techs OFF',
 		'(gives tech upgrades their own upgrade category under cookies)',
-		function() {
-			if(!OmniCookies.patchedTechUpgrades) OmniCookies.patchTechUpgradeMenu();
-		}
-	));
-
-	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
-		'Enhanced bulk ON', 'Enhanced bulk OFF',
-		'(allows partial and maximum bulk purchases)',
-		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
+		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
 	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
@@ -206,10 +228,37 @@ OmniCookies.customOptionsMenu = function() {
 		'(cursors are animated regardless of the Fancy setting)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
-		'Buildings draw smart ON', 'Buildings draw smart OFF',
-		'(experimental; buildings attempt to skip unnecessary draw frames)'
+	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
+		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
+		'(wrinklers are animated regardless of the Fancy setting)'
 	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Quality of Life"));
+
+	//==========================//
+	//#region QoL settings
+
+	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
+		'Enhanced bulk ON', 'Enhanced bulk OFF',
+		'(allows partial and maximum bulk purchases)',
+		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
+	));
+
+	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
+		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
+		'(buffs will show their current duration in their tooltip)'
+	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Stock Market"));
+
+	//==========================//
+	//#region Stock Market settings
 
 	frag.appendChild(OmniCookies.makeButton('stockValueData',
 		'Stock value data ON', 'Stock value data OFF',
@@ -220,6 +269,51 @@ OmniCookies.customOptionsMenu = function() {
 		'Dangerous stocks ON', 'Dangerous stocks OFF',
 		'(stock market affects total cookies earned)'
 	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Pantheon"));
+
+	//==========================//
+	//#region Pantheon settings
+
+	frag.appendChild(OmniCookies.makeButton('detailedCyclius',
+		'Cyclius details ON', 'Cyclius details OFF',
+		'(shows Cyclius\' current cycles in his tooltip)',
+		function() { OmniCookies.toggleCyclius(); }
+	));
+	
+	frag.appendChild(OmniCookies.makeButton('zonedCyclius',
+		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
+		'(offsets Cyclius based on your time zone, towards GMT+1)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+		'True Cyclius ON', 'True Cyclius OFF',
+		'(Cyclius shows off his power with style)'
+	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Experimental"));
+
+	//==========================//
+	//#region Experimental settings
+
+	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
+		'Buildings draw smart ON', 'Buildings draw smart OFF',
+		'(experimental; buildings attempt to skip unnecessary draw frames)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('preserveWrinklers',
+		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
+		'(experimental; attempts to preserve all wrinkler data on game save/load)'
+	));
+
+	//#endregion
+	//==========================//
 
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
 }
@@ -283,8 +377,8 @@ OmniCookies.patchBuildings = function() {
 				$&`
 		},
 		{   // Check for unloaded building pics
-			pattern: 'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
-			replacement: '$&\nthis.hasUnloadedImages = this.hasUnloadedImages || usedPic == Game.Loader.blank;'
+			pattern: 'var sprite=Pic(pic.pic);',
+			replacement: '$&\nthis.hasUnloadedImages |= sprite == Game.Loader.blank;'
 		},
 		{   // Scroll the background with the scroll offset
 			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
@@ -477,13 +571,18 @@ OmniCookies.patchBuffTooltips = function() {
 	}
 
 	// Patch Stretch Time success roll to update buff description
-	let minigame = Game.Objects['Wizard tower'].minigame;
-	minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
-		{
-			pattern: 'me.maxTime+=gain;',
-			replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+	let patchGrimoire = setInterval(function() {
+		let minigame = Game.Objects['Wizard tower'].minigame;
+		if(minigame) {
+			minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
+				{
+					pattern: 'me.maxTime+=gain;',
+					replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+				}
+			]);
+			clearInterval(patchGrimoire);
 		}
-	]);
+	}, 250);
 }
 
 // Adds a line break to grandma synergy upgrades
@@ -504,6 +603,7 @@ OmniCookies.patchGrandmaUpgrades = function() {
 
 // Creates a new area for Tech upgrades under the Cookie upgrades
 OmniCookies.patchTechUpgradeMenu = function() {
+	if(OmniCookies.patchedTechUpgrades) return;
 	OmniCookies.patchedTechUpgrades = true;
 
 	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [
@@ -545,6 +645,31 @@ OmniCookies.patchFancyCursors = function() {
 	]);
 }
 
+// Allows wrinklers to bypass the Fancy graphics setting
+OmniCookies.patchFancyWrinklers = function() {
+	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
+		{
+			pattern: /Game\.prefs\.fancy/g,
+			replacement: `OmniCookies.settings.wrinklersBypassFancy || $&`
+		}
+	], `var inRect = function(x,y,rect)
+		{
+			//find out if the point x,y is in the rotated rectangle rect{w,h,r,o} (width,height,rotation in radians,y-origin) (needs to be normalized)
+			//I found this somewhere online I guess
+			var dx = x+Math.sin(-rect.r)*(-(rect.h/2-rect.o)),dy=y+Math.cos(-rect.r)*(-(rect.h/2-rect.o));
+			var h1 = Math.sqrt(dx*dx + dy*dy);
+			var currA = Math.atan2(dy,dx);
+			var newA = currA - rect.r;
+			var x2 = Math.cos(newA) * h1;
+			var y2 = Math.sin(newA) * h1;
+			if (x2 > -0.5 * rect.w && x2 < 0.5 * rect.w && y2 > -0.5 * rect.h && y2 < 0.5 * rect.h) return true;
+			return false;
+		}`);
+}
+
+// Properly displays the (seemingly intended) feature of partial buying in bulk.
+// Also makes the ALL button worth ALL, not 1000
+// Also allows using the ALL button in buy mode.
 OmniCookies.patchBuySellBulk = function() {
 	let rebuildPattern = [
 		{
@@ -610,6 +735,58 @@ OmniCookies.patchBuySellBulk = function() {
 	OmniCookies.updateBulkAll();
 }
 
+// For now, this just patches Cyclius.
+// Adds a displayed value for each of Cyclius' cycles.
+OmniCookies.patchPantheonInfo = function() {
+	let patchPantheonInfoInterval = setInterval(function() {
+		let pantheon = Game.Objects['Temple'].minigame;
+		if(pantheon) {
+			let functionPattern = [
+				{   // Allow functions to be used as descriptions
+					pattern: /\+me\.desc(\w+)\+/g,
+					replacement: `+((typeof me.desc$1 == 'function') ? me.desc$1() : me.desc$1)+`
+				}
+			];
+			pantheon.godTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
+				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
+			pantheon.slotTooltip = OmniCookies.replaceCode(pantheon.slotTooltip, 
+				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
+
+			// Display Cyclius values
+			let cycliusFunc = function(interval) {
+				return function() {
+					let effect = '';
+					if(OmniCookies.settings.detailedCyclius) {
+						let mult = 0.15*Math.sin(OmniCookies.cycliusCalc(interval)) * 100;
+						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
+						let sign = mult > 0 ? '+' : '';
+						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
+					}
+					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.</div>${effect}`;
+				}
+			}
+			let cyclius = pantheon.gods['ages'];
+			OmniCookies.toggleCyclius();
+			cyclius.desc1 = cycliusFunc(3);
+			cyclius.desc2 = cycliusFunc(12);
+			cyclius.desc3 = cycliusFunc(24);
+
+			clearInterval(patchPantheonInfoInterval);
+		}
+	}, 250);
+}
+OmniCookies.toggleCyclius = function() {
+	let pantheon = Game.Objects['Temple'].minigame;
+	let cyclius = pantheon.gods['ages'];
+	if(cyclius.activeDescFunc) {
+		cyclius.activeDescBackup = cyclius.activeDescFunc;
+		cyclius.activeDescFunc = undefined; // I'm sorry
+	} else {
+		cyclius.activeDescFunc = cyclius.activeDescBackup;
+		cyclius.activeDescBackup = undefined; // I'm really, really sorry
+	}
+}
+
 // Updates the bulk buy selection for when the option is toggled
 OmniCookies.updateBulkAll = function() {
 	if(Game.buyMode == 1) {
@@ -625,120 +802,205 @@ OmniCookies.updateBulkAll = function() {
 OmniCookies.patchDangerousStocks = function() {
 	OmniCookies.patchedDangerousStocks = true;
 
-	let stockMarket = Game.Objects['Bank'].minigame;
-	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
-		{   // Use Dissolve instead of Spend (to withhold cookies earned)
-			pattern: `Game.Spend(cost*n);`,
-			replacement: `
-				if(OmniCookies.settings.dangerousStocks) {
-					Game.Dissolve(cost*n);
-				} else {
-					$&
+	let patchStockMarket = setInterval(function() {
+		let stockMarket = Game.Objects['Bank'].minigame;
+		if(stockMarket) {
+			stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+				{   // Use Dissolve instead of Spend (to withhold cookies earned)
+					pattern: `Game.Spend(cost*n);`,
+					replacement: `
+						if(OmniCookies.settings.dangerousStocks) {
+							Game.Dissolve(cost*n);
+						} else {
+							$&
+						}
+					`
 				}
-			`
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+				{   // Start using Game.Earn again (to reinstate cookies earned)
+					pattern: '//Game.Earn',
+					replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
+				},
+				{   // Stop using direct setting
+					pattern: /\tGame\.cookies/gm,
+					replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			clearInterval(patchStockMarket);
 		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
-		{   // Start using Game.Earn again (to reinstate cookies earned)
-			pattern: '//Game.Earn',
-			replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
-		},
-		{   // Stop using direct setting
-			pattern: /\tGame\.cookies/gm,
-			replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
+	}, 250);
 }
 
+// Displays information about how much you bought your stocks for
 OmniCookies.patchStockInfo = function() {
-	let stockMarket = Game.Objects['Bank'].minigame;
-	stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
-		{   // Calculate new average when buying stock
-			pattern: 'return true;',
-			replacement: `
-				if(OmniCookies.settings.stockValueData) {
-					let realCostInS = costInS * overhead;
-					if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
-						OmniCookies.saveData.stockAverages[id] = {
-							avgValue: realCostInS,
-							totalValue: realCostInS*n
-						};
-					} else {
-						let avg = OmniCookies.saveData.stockAverages[id];
-						avg.totalValue += realCostInS*n;
-						avg.avgValue = avg.totalValue/me.stock;
-					}
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
-		{   // Subtract total bought stock value when selling
-			pattern: `return true;`,
-			replacement: `
-				if(OmniCookies.settings.stockValueData && OmniCookies.saveData.stockAverages[id]) {
-					let avg = OmniCookies.saveData.stockAverages[id];
-					avg.totalValue -= avg.avgValue*n;
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
-		{   // Draw line for profit threshold
-			pattern: /}$/,
-			replacement: `
-				if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
-					let me = M.goodsById[M.hoverOnGood];
-					if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
-						ctx.strokeStyle='#00ff00'; // green
-						ctx.beginPath();
-						let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
-						ctx.moveTo(width-1, lineHeight);
-						ctx.lineTo(width-span*rows-1, lineHeight);
-						ctx.stroke();
-					}
-				}
-			$&`
-		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
-		{
-			pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
-			replacement: `
-				if(OmniCookies.settings.stockValueData) {
-					if(!me.avgL) {
-						let avgSpan = document.createElement('span');
-						avgSpan.id = 'bankGood-'+me.id+'-avg';
-						avgSpan.innerHTML = '(-)';
-						document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
-						me.avgL = avgSpan;
-					}
-					
-					if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
-						me.avgL.style.visibility = 'visible';
-						let avg = OmniCookies.saveData.stockAverages[me.id];
-						me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
-						if(avg.avgValue < me.val) {
-							me.avgL.classList.remove('red');
-							me.avgL.classList.add('green');
+	let patchStockMarket = setInterval(function() {
+		let stockMarket = Game.Objects['Bank'].minigame;
+		if(stockMarket) {
+			stockMarket.buyGood = OmniCookies.replaceCode(stockMarket.buyGood, [
+				{   // Calculate new average when buying stock
+					pattern: 'return true;',
+					replacement: `
+						let realCostInS = costInS * overhead;
+						if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
+							OmniCookies.saveData.stockAverages[id] = {
+								avgValue: realCostInS,
+								totalValue: realCostInS*n
+							};
 						} else {
-							me.avgL.classList.remove('green');
-							me.avgL.classList.add('red');
+							let avg = OmniCookies.saveData.stockAverages[id];
+							avg.totalValue += realCostInS*n;
+							avg.avgValue = avg.totalValue/me.stock;
 						}
-					} else {
-						me.avgL.style.visibility = 'hidden';
-						me.avgL.innerHTML = '';
-					}
-				} else {
-					if(me.avgL) {
-						me.avgL.remove();
-						me.avgL = undefined;
-					}
+					$&`
 				}
-			$&`
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.sellGood = OmniCookies.replaceCode(stockMarket.sellGood, [
+				{   // Subtract total bought stock value when selling
+					pattern: `return true;`,
+					replacement: `
+						if(OmniCookies.saveData.stockAverages[id]) {
+							let avg = OmniCookies.saveData.stockAverages[id];
+							avg.totalValue -= avg.avgValue*n;
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
+				{   // Draw line for profit threshold
+					pattern: /}$/,
+					replacement: `
+						if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
+							let me = M.goodsById[M.hoverOnGood];
+							if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
+								ctx.strokeStyle='#00ff00'; // green
+								ctx.beginPath();
+								let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
+								ctx.moveTo(width-1, lineHeight);
+								ctx.lineTo(width-span*rows-1, lineHeight);
+								ctx.stroke();
+							}
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
+				{   // Add a new display for the average bought value
+					pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
+					replacement: `
+						if(OmniCookies.settings.stockValueData) {
+							if(!me.avgL) {
+								let avgSpan = document.createElement('span');
+								avgSpan.id = 'bankGood-'+me.id+'-avg';
+								avgSpan.innerHTML = '(-)';
+								document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
+								me.avgL = avgSpan;
+							}
+							
+							if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
+								me.avgL.style.visibility = 'visible';
+								let avg = OmniCookies.saveData.stockAverages[me.id];
+								me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
+								if(avg.avgValue < me.val) {
+									me.avgL.classList.remove('red');
+									me.avgL.classList.add('green');
+								} else {
+									me.avgL.classList.remove('green');
+									me.avgL.classList.add('red');
+								}
+							} else {
+								me.avgL.style.visibility = 'hidden';
+								me.avgL.innerHTML = '';
+							}
+						} else {
+							if(me.avgL) {
+								me.avgL.remove();
+								me.avgL = undefined;
+							}
+						}
+					$&`
+				}
+			], `var M = Game.Objects['Bank'].minigame;`);
+			stockMarket.toRedraw = 1;
+			clearInterval(patchStockMarket);
 		}
-	], `var M = Game.Objects['Bank'].minigame;`);
-	stockMarket.toRedraw = 1;
+	}, 250);
+}
+
+// Restores wrinklers to their original positions and values
+// Checks against current wrinklers to prevent wrinkler duplication
+// Why doesn't the vanilla game do this...?
+OmniCookies.cryosleepWrinklers = function() {
+	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : null;
+}
+OmniCookies.thawWrinklers = function() {
+	if(OmniCookies.settings.preserveWrinklers && OmniCookies.saveData.frozenWrinks) {
+		let realWrinks = Game.wrinklers;
+		let currentWrinks = Game.SaveWrinklers();
+		Game.wrinklers = OmniCookies.saveData.frozenWrinks;
+		let thawedWrinks = Game.SaveWrinklers();
+		for(var attr in currentWrinks) {
+			let ratio = Math.min(currentWrinks[attr]/thawedWrinks[attr], thawedWrinks[attr]/currentWrinks[attr]);
+			if(currentWrinks[attr] != thawedWrinks[attr] && ratio < 0.999) {
+				Game.wrinklers = realWrinks;
+				return;
+			}
+		}
+	}
+}
+
+// Rotates Cyclius along with his current cycle
+OmniCookies.trueCyclius = function() {
+	let cyclius = document.getElementById('templeGod3');
+	if(cyclius) {
+		let icon = cyclius.getElementsByClassName('usesIcon')[0];
+		let slot = Game.hasGod('ages');
+		if(slot) {
+			// Modify the icon styling so the drop shadow doesn't move
+			// Simply places the animation on a div and puts the icon in it
+			if(icon.classList.contains('shadowFilter')) {
+				let div = document.createElement('div');
+				div.classList.add('templeIcon');
+				div.classList.add('shadowFilter');
+				div.style.margin = 'unset';
+				icon.classList.remove('shadowFilter');
+				icon.style.animation = 'none';
+				cyclius.removeChild(icon);
+				cyclius.appendChild(div);
+				div.appendChild(icon);
+				OmniCookies.patchedTrueCyclius = true;
+			}
+
+			let interval = 0;
+			let rotation = 0;
+			if(OmniCookies.settings.trueCyclius) {
+				switch(slot) {
+					case 1: interval = 3; break;
+					case 2: interval = 12; break;
+					case 3: interval = 24; break;
+				}
+				rotation = OmniCookies.cycliusCalc(interval) - Math.PI/2;
+				icon.style.setProperty('transform', `rotate(${rotation}rad)`);
+			} else {
+				icon.style.removeProperty('transform');
+			}
+		} else {
+			if(OmniCookies.patchedTrueCyclius) icon.style.removeProperty('transform');
+		}
+	} else {
+		OmniCookies.patchedTrueCyclius = false;
+	}
+}
+
+// Replaces cyclius gain function with our own
+// It's the same, unless zonedCyclius is enabled
+OmniCookies.patchCycliusGains = function() {
+	Game.CalculateGains = OmniCookies.replaceCode(Game.CalculateGains, [
+		{
+			pattern: /\(Date\.now\(\)\/1000\/\(60\*60\*(\d+)\)\)\*Math\.PI\*2/g,
+			replacement: 'OmniCookies.cycliusCalc($1)'
+		}
+	]);
 }
 
 //#endregion
@@ -754,16 +1016,24 @@ OmniCookies.init = function() {
 	OmniCookies.patchUpdateMenu();
 	OmniCookies.patchFancyBuildings();
 	OmniCookies.patchFancyCursors();
+	OmniCookies.patchFancyWrinklers();
 	OmniCookies.patchStockInfo();
 	OmniCookies.patchDangerousStocks();
+	OmniCookies.patchPantheonInfo();
+	OmniCookies.patchCycliusGains();
 
-	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {
+		// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
 	});
 
-	// Reset stock average data when resetting
+	Game.registerHook('draw', function() {
+		// Update Cyclius' display of raw power
+		OmniCookies.trueCyclius();
+	});
+
 	Game.registerHook('reset', function(hard) {
+		// Reset stock average data and frozen wrinklers when resetting
 		OmniCookies.defaultSave();
 	});
 
@@ -771,6 +1041,7 @@ OmniCookies.init = function() {
 }
 
 OmniCookies.save = function() {
+	OmniCookies.cryosleepWrinklers();
 	return JSON.stringify({
 		settings: OmniCookies.settings,
 		saveData: OmniCookies.saveData
@@ -785,6 +1056,7 @@ OmniCookies.load = function(str) {
 	OmniCookies.loadData(saveData, OmniCookies.saveData);
 
 	OmniCookies.patchBuySellBulk();
+	OmniCookies.thawWrinklers();
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
 	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;

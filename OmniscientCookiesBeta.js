@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 5'
+	version: 'v1.3.0 BETA 6'
 };
 
 OmniCookies.settings = {
@@ -107,9 +107,10 @@ OmniCookies.loadData = function(data, into) {
 	if(data) {
 		for(key of Object.keys(data)) {
 			if(key in into) {
-				// convert from old boolean buttons to new integered buttons
+				// convert from old boolean buttons to new optioned buttons
+				// for these buttons in particular, 0 was "on" and 2 is now "off"
 				if(typeof data[key] == 'boolean' && typeof into[key] == 'number') {
-					data[key] = data[key] ? 0 : 1;
+					data[key] = data[key] ? 0 : 2;
 				}
 				into[key] = data[key];
 			}
@@ -709,7 +710,7 @@ OmniCookies.patchFancyCursors = function() {
 	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
 		{
 			pattern: /(var fancy=)(Game\.prefs\.fancy)(;)/,
-			replacement: '$1($2 || OmniCookies.settings.cursorsBypassFancyNum == 0) && OmniCookies.settings.cursorsBypassFancyNum != 1$3'
+			replacement: '$1($2 || OmniCookies.settings.cursorsBypassFancy == 0) && OmniCookies.settings.cursorsBypassFancy != 1$3'
 		}
 	]);
 }

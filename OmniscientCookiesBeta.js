@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 33'
+	version: 'v1.2.5 BETA 34'
 };
 
 OmniCookies.settings = {
@@ -924,7 +924,7 @@ OmniCookies.trueCyclius = function() {
 					case 3: interval = 24; break;
 				}
 				rotation = OmniCookies.cycliusCalc(interval) - Math.PI/2;
-				icon.style.transform = `rotate(${rotation}rad)`;
+				icon.style.setProperty('transform', `rotate(${rotation}rad)`);
 			} else {
 				icon.style.removeProperty('transform');
 			}

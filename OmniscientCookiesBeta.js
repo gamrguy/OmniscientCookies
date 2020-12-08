@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 23'
+	version: 'v1.2.5 BETA 24'
 };
 
 OmniCookies.settings = {
@@ -679,7 +679,7 @@ OmniCookies.patchPantheonInfo = function() {
 						let sign = mult > 0 ? '+' : '';
 						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
 					}
-					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.${effect}`;
+					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.</div>${effect}`;
 				}
 			}
 			let cyclius = pantheon.gods['ages'];

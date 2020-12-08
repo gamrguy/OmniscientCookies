@@ -916,11 +916,11 @@ OmniCookies.init = function() {
 				}
 				let interval = 0;
 				switch(Game.hasGod('ages')) {
-					case 1: interval = 3;
-					case 2: interval = 12;
-					case 3: interval = 24;
+					case 1: interval = 3; break;
+					case 2: interval = 12; break;
+					case 3: interval = 24; break;
 				}
-				let rotation = (Date.now()/1000/(60*60*interval))*Math.PI*2 + Math.PI/2;
+				let rotation = (Date.now()/1000/(60*60*interval))*Math.PI*2 - Math.PI/2;
 				console.log(rotation);
 				icon.style.transform = 'rotate('+rotation+'rad)';
 			}

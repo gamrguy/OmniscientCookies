@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 4'
+	version: 'v1.3.0 BETA 5'
 };
 
 OmniCookies.settings = {
@@ -699,7 +699,7 @@ OmniCookies.patchFancyBuildings = function() {
 	Game.Draw = OmniCookies.replaceCode(Game.Draw, [
 		{
 			pattern: 'if (Game.prefs.animate && ((Game.prefs.fancy && Game.drawT%1==0)',
-			replacement: 'if (Game.prefs.animate && (((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy) && Game.drawT%1==0)'
+			replacement: 'if (Game.prefs.animate && ((((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy == 0) && OmniCookies.settings.buildingsBypassFancy != 1) && Game.drawT%1==0)'
 		}
 	]);
 }
@@ -719,7 +719,7 @@ OmniCookies.patchFancyWrinklers = function() {
 	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
 		{
 			pattern: /Game\.prefs\.fancy/g,
-			replacement: `OmniCookies.settings.wrinklersBypassFancy || $&`
+			replacement: `($& || OmniCookies.settings.wrinklersBypassFancy == 0) && OmniCookies.settings.wrinklersBypassFancy != 1`
 		}
 	], `var inRect = function(x,y,rect)
 		{

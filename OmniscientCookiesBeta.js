@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 34'
+	version: 'v1.2.5 BETA 35'
 };
 
 OmniCookies.settings = {
@@ -960,7 +960,7 @@ OmniCookies.init = function() {
 	});
 
 	Game.registerHook('draw', function() {
-		
+		OmniCookies.trueCyclius();
 	});
 
 	// Reset stock average data when resetting

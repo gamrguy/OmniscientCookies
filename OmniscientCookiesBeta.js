@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 38'
+	version: 'v1.2.5 BETA 39'
 };
 
 OmniCookies.settings = {
@@ -17,7 +17,7 @@ OmniCookies.settings = {
 	wrinklersBypassFancy: false,
 	optimizeBuildings: false,
 	preserveWrinklers: false,
-	detailedGods: true,
+	detailedCyclius: true,
 	zonedCyclius: false,
 	trueCyclius: false,
 	stockValueData: true,
@@ -278,7 +278,7 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Pantheon settings
 
-	frag.appendChild(OmniCookies.makeButton('detailedGods',
+	frag.appendChild(OmniCookies.makeButton('detailedCyclius',
 		'Cyclius details ON', 'Cyclius details OFF',
 		'(shows Cyclius\' current cycles in his tooltip)',
 		function() { OmniCookies.toggleCyclius(); }
@@ -377,8 +377,8 @@ OmniCookies.patchBuildings = function() {
 				$&`
 		},
 		{   // Check for unloaded building pics
-			pattern: 'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
-			replacement: '$&\nthis.hasUnloadedImages = this.hasUnloadedImages || usedPic == Game.Loader.blank;'
+			pattern: 'var sprite=Pic(pic.pic);',
+			replacement: '$&\nthis.hasUnloadedImages |= sprite == Game.Loader.blank;'
 		},
 		{   // Scroll the background with the scroll offset
 			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
@@ -645,6 +645,7 @@ OmniCookies.patchFancyCursors = function() {
 	]);
 }
 
+// Allows wrinklers to bypass the Fancy graphics setting
 OmniCookies.patchFancyWrinklers = function() {
 	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
 		{
@@ -666,6 +667,9 @@ OmniCookies.patchFancyWrinklers = function() {
 		}`);
 }
 
+// Properly displays the (seemingly intended) feature of partial buying in bulk.
+// Also makes the ALL button worth ALL, not 1000
+// Also allows using the ALL button in buy mode.
 OmniCookies.patchBuySellBulk = function() {
 	let rebuildPattern = [
 		{
@@ -731,6 +735,8 @@ OmniCookies.patchBuySellBulk = function() {
 	OmniCookies.updateBulkAll();
 }
 
+// For now, this just patches Cyclius.
+// Adds a displayed value for each of Cyclius' cycles.
 OmniCookies.patchPantheonInfo = function() {
 	let patchPantheonInfoInterval = setInterval(function() {
 		let pantheon = Game.Objects['Temple'].minigame;
@@ -750,7 +756,7 @@ OmniCookies.patchPantheonInfo = function() {
 			let cycliusFunc = function(interval) {
 				return function() {
 					let effect = '';
-					if(OmniCookies.settings.detailedGods) {
+					if(OmniCookies.settings.detailedCyclius) {
 						let mult = 0.15*Math.sin(OmniCookies.cycliusCalc(interval)) * 100;
 						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
 						let sign = mult > 0 ? '+' : '';
@@ -774,10 +780,10 @@ OmniCookies.toggleCyclius = function() {
 	let cyclius = pantheon.gods['ages'];
 	if(cyclius.activeDescFunc) {
 		cyclius.activeDescBackup = cyclius.activeDescFunc;
-		cyclius.activeDescFunc = undefined;
+		cyclius.activeDescFunc = undefined; // I'm sorry
 	} else {
 		cyclius.activeDescFunc = cyclius.activeDescBackup;
-		cyclius.activeDescBackup = undefined;
+		cyclius.activeDescBackup = undefined; // I'm really, really sorry
 	}
 }
 
@@ -826,6 +832,7 @@ OmniCookies.patchDangerousStocks = function() {
 	}, 250);
 }
 
+// Displays information about how much you bought your stocks for
 OmniCookies.patchStockInfo = function() {
 	let patchStockMarket = setInterval(function() {
 		let stockMarket = Game.Objects['Bank'].minigame;
@@ -834,18 +841,16 @@ OmniCookies.patchStockInfo = function() {
 				{   // Calculate new average when buying stock
 					pattern: 'return true;',
 					replacement: `
-						if(OmniCookies.settings.stockValueData) {
-							let realCostInS = costInS * overhead;
-							if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
-								OmniCookies.saveData.stockAverages[id] = {
-									avgValue: realCostInS,
-									totalValue: realCostInS*n
-								};
-							} else {
-								let avg = OmniCookies.saveData.stockAverages[id];
-								avg.totalValue += realCostInS*n;
-								avg.avgValue = avg.totalValue/me.stock;
-							}
+						let realCostInS = costInS * overhead;
+						if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
+							OmniCookies.saveData.stockAverages[id] = {
+								avgValue: realCostInS,
+								totalValue: realCostInS*n
+							};
+						} else {
+							let avg = OmniCookies.saveData.stockAverages[id];
+							avg.totalValue += realCostInS*n;
+							avg.avgValue = avg.totalValue/me.stock;
 						}
 					$&`
 				}
@@ -854,7 +859,7 @@ OmniCookies.patchStockInfo = function() {
 				{   // Subtract total bought stock value when selling
 					pattern: `return true;`,
 					replacement: `
-						if(OmniCookies.settings.stockValueData && OmniCookies.saveData.stockAverages[id]) {
+						if(OmniCookies.saveData.stockAverages[id]) {
 							let avg = OmniCookies.saveData.stockAverages[id];
 							avg.totalValue -= avg.avgValue*n;
 						}
@@ -880,7 +885,7 @@ OmniCookies.patchStockInfo = function() {
 				}
 			], `var M = Game.Objects['Bank'].minigame;`);
 			stockMarket.draw = OmniCookies.replaceCode(stockMarket.draw, [
-				{
+				{   // Add a new display for the average bought value
 					pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
 					replacement: `
 						if(OmniCookies.settings.stockValueData) {
@@ -1017,17 +1022,18 @@ OmniCookies.init = function() {
 	OmniCookies.patchPantheonInfo();
 	OmniCookies.patchCycliusGains();
 
-	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {
+		// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
 	});
 
 	Game.registerHook('draw', function() {
+		// Update Cyclius' display of raw power
 		OmniCookies.trueCyclius();
 	});
 
-	// Reset stock average data when resetting
 	Game.registerHook('reset', function(hard) {
+		// Reset stock average data and frozen wrinklers when resetting
 		OmniCookies.defaultSave();
 	});
 

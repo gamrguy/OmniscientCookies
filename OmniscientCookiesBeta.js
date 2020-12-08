@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 37'
+	version: 'v1.2.5 BETA 38'
 };
 
 OmniCookies.settings = {
@@ -175,7 +175,10 @@ OmniCookies.customOptionsMenu = function() {
 	title.textContent = `${OmniCookies.name} ${OmniCookies.version}`;
 	frag.appendChild(title);
 
-	frag.appendChild(OmniCookies.makeHeader("Testing testing ???"));
+	frag.appendChild(OmniCookies.makeHeader("Graphical tweaks"));
+
+	//==========================//
+	//#region Graphics settings
 
 	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
 		'Autohide center scrollbar ON', 'Autohide center scrollbar OFF',
@@ -191,11 +194,6 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('smoothBuildings',
 		'Smooth buildings ON', 'Smooth buildings OFF',
 		'(buildings draw every frame, instead of every 3 frames)'
-	));
-
-	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
-		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
-		'(buffs will show their current duration in their tooltip)'
 	));
 
 	frag.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
@@ -220,11 +218,65 @@ OmniCookies.customOptionsMenu = function() {
 		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
+	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
+		'Buildings always fancy ON', 'Buildings always fancy OFF',
+		'(buildings are drawn at normal speed regardless of the Fancy setting)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
+		'Cursors always fancy ON', 'Cursors always fancy OFF',
+		'(cursors are animated regardless of the Fancy setting)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
+		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
+		'(wrinklers are animated regardless of the Fancy setting)'
+	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Quality of Life"));
+
+	//==========================//
+	//#region QoL settings
+
 	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
 		'Enhanced bulk ON', 'Enhanced bulk OFF',
 		'(allows partial and maximum bulk purchases)',
 		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
 	));
+
+	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
+		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
+		'(buffs will show their current duration in their tooltip)'
+	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Stock Market"));
+
+	//==========================//
+	//#region Stock Market settings
+
+	frag.appendChild(OmniCookies.makeButton('stockValueData',
+		'Stock value data ON', 'Stock value data OFF',
+		'(displays information about how profitable your stocks are)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
+		'Dangerous stocks ON', 'Dangerous stocks OFF',
+		'(stock market affects total cookies earned)'
+	));
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Pantheon"));
+
+	//==========================//
+	//#region Pantheon settings
 
 	frag.appendChild(OmniCookies.makeButton('detailedGods',
 		'Cyclius details ON', 'Cyclius details OFF',
@@ -242,20 +294,13 @@ OmniCookies.customOptionsMenu = function() {
 		'(Cyclius shows off his power with style)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
-		'Buildings always fancy ON', 'Buildings always fancy OFF',
-		'(buildings are drawn at normal speed regardless of the Fancy setting)'
-	));
+	//#endregion
+	//==========================//
 
-	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
-		'Cursors always fancy ON', 'Cursors always fancy OFF',
-		'(cursors are animated regardless of the Fancy setting)'
-	));
+	frag.appendChild(OmniCookies.makeHeader("Experimental"));
 
-	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
-		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
-		'(wrinklers are animated regardless of the Fancy setting)'
-	));
+	//==========================//
+	//#region Experimental settings
 
 	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
 		'Buildings draw smart ON', 'Buildings draw smart OFF',
@@ -267,15 +312,8 @@ OmniCookies.customOptionsMenu = function() {
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('stockValueData',
-		'Stock value data ON', 'Stock value data OFF',
-		'(displays information about how profitable your stocks are)'
-	));
-
-	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
-		'Dangerous stocks ON', 'Dangerous stocks OFF',
-		'(stock market affects total cookies earned)'
-	));
+	//#endregion
+	//==========================//
 
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
 }

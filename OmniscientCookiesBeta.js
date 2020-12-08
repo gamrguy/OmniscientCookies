@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 35'
+	version: 'v1.2.5 BETA 36'
 };
 
 OmniCookies.settings = {
@@ -936,6 +936,17 @@ OmniCookies.trueCyclius = function() {
 	}
 }
 
+// Replaces cyclius gain function with our own
+// It's the same, unless zonedCyclius is enabled
+OmniCookies.patchCycliusGains = function() {
+	Game.CalculateGains = OmniCookies.replaceCode(Game.CalculateGains, [
+		{
+			pattern: /\(Date\.now\(\)\/1000\/\(60\*60\*(\d+)\)\)\*Math\.PI\*2/g,
+			replacement: 'OmniCookies.cycliusCalc($1)'
+		}
+	]);
+}
+
 //#endregion
 //==============================//
 
@@ -953,6 +964,7 @@ OmniCookies.init = function() {
 	OmniCookies.patchStockInfo();
 	OmniCookies.patchDangerousStocks();
 	OmniCookies.patchPantheonInfo();
+	OmniCookies.patchCycliusGains();
 
 	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {

@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 29'
+	version: 'v1.2.5 BETA 30'
 };
 
 OmniCookies.settings = {
@@ -920,7 +920,8 @@ OmniCookies.init = function() {
 					case 2: interval = 12;
 					case 3: interval = 24;
 				}
-				let rotation = Math.cos((Date.now()/1000/(60*60*interval))*Math.PI*2)*Math.PI;
+				let rotation = (Date.now()/1000/(60*60*interval))*Math.PI*2 + Math.PI/2;
+				console.log(rotation);
 				icon.style.transform = 'rotate('+rotation+'rad)';
 			}
 		}

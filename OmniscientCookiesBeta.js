@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 2'
+	version: 'v1.3.0 BETA 3'
 };
 
 OmniCookies.settings = {
@@ -705,7 +705,7 @@ OmniCookies.patchFancyCursors = function() {
 	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
 		{
 			pattern: /(var fancy=)(Game\.prefs\.fancy)(;)/,
-			replacement: '($2 || OmniCookies.settings.cursorsBypassFancyNum == 0) && OmniCookies.settings.cursorsBypassFancyNum != 1$3'
+			replacement: '$1($2 || OmniCookies.settings.cursorsBypassFancyNum == 0) && OmniCookies.settings.cursorsBypassFancyNum != 1$3'
 		}
 	]);
 }

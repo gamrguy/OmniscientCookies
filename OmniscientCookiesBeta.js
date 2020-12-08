@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 31'
+	version: 'v1.2.5 BETA 32'
 };
 
 OmniCookies.settings = {
@@ -18,9 +18,10 @@ OmniCookies.settings = {
 	optimizeBuildings: false,
 	preserveWrinklers: false,
 	detailedGods: true,
+	zonedCyclius: false,
+	trueCyclius: false,
 	stockValueData: true,
 	dangerousStocks: false,
-	trueCyclius: false
 }
 
 OmniCookies.saveData = {}
@@ -87,6 +88,19 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 		maxPrice: Math.ceil(maxPrice),
 		maxAmount: maxAmount
 	};
+}
+
+// Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
+// Interval is how many hours each cycle is.
+// Returned value is in radians, as part of a full rotation.
+// If zonedCyclius is on, offsets the cycle as though it were GMT+1 time.
+OmniCookies.cycliusCalc = function(interval) {
+	let cycle = (Date.now()/1000/(60*60*interval));
+	if(OmniCookies.settings.zonedCyclius) {
+		cycle += (new Date().getTimezoneOffset() + 60)/60/interval
+	}
+	cycle %= 1;
+	return cycle*Math.PI*2;
 }
 
 OmniCookies.loadData = function(data, into) {
@@ -199,6 +213,22 @@ OmniCookies.customOptionsMenu = function() {
 		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
 	));
 
+	frag.appendChild(OmniCookies.makeButton('detailedGods',
+		'Cyclius details ON', 'Cyclius details OFF',
+		'(shows Cyclius\' current cycles in his tooltip)',
+		function() { OmniCookies.toggleCyclius(); }
+	));
+	
+	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
+		'(offsets Cyclius based on your time zone, towards GMT+1)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+		'True Cyclius ON', 'True Cyclius OFF',
+		'(Cyclius shows off his power with style)'
+	));
+
 	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
 		'Buildings always fancy ON', 'Buildings always fancy OFF',
 		'(buildings are drawn at normal speed regardless of the Fancy setting)'
@@ -224,12 +254,6 @@ OmniCookies.customOptionsMenu = function() {
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('detailedGods',
-		'Detailed gods ON', 'Detailed gods OFF',
-		'(adds more detailed information on some Pantheon gods)',
-		function() { OmniCookies.toggleCyclius(); }
-	));
-
 	frag.appendChild(OmniCookies.makeButton('stockValueData',
 		'Stock value data ON', 'Stock value data OFF',
 		'(displays information about how profitable your stocks are)'
@@ -238,11 +262,6 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
 		'Dangerous stocks ON', 'Dangerous stocks OFF',
 		'(stock market affects total cookies earned)'
-	));
-
-	frag.appendChild(OmniCookies.makeButton('trueCyclius',
-		'True cyclius ON', 'True cyclius OFF',
-		'(Cyclius shows off his power with style)'
 	));
 
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
@@ -681,7 +700,7 @@ OmniCookies.patchPantheonInfo = function() {
 				return function() {
 					let effect = '';
 					if(OmniCookies.settings.detailedGods) {
-						let mult = 0.15*Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2) * 100;
+						let mult = 0.15*Math.sin(OmniCookies.cycliusCalc(interval)) * 100;
 						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
 						let sign = mult > 0 ? '+' : '';
 						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
@@ -874,6 +893,49 @@ OmniCookies.thawWrinklers = function() {
 	}
 }
 
+// Rotates Cyclius along with his current cycle
+OmniCookies.trueCyclius = function() {
+	let cyclius = document.getElementById('templeGod3');
+	if(cyclius) {
+		let icon = cyclius.getElementsByClassName('usesIcon')[0];
+		let slot = Game.hasGod('ages');
+		if(slot) {
+			// Modify the icon styling so the drop shadow doesn't move
+			// Simply places the animation on a div and puts the icon in it
+			if(icon.classList.contains('shadowFilter')) {
+				let div = document.createElement('div');
+				div.classList.add('templeIcon');
+				div.classList.add('shadowFilter');
+				div.style.margin = 'unset';
+				icon.classList.remove('shadowFilter');
+				icon.style.animation = 'none';
+				cyclius.removeChild(icon);
+				cyclius.appendChild(div);
+				div.appendChild(icon);
+				OmniCookies.patchedTrueCyclius = true;
+			}
+
+			let interval = 0;
+			let rotation = 0;
+			if(OmniCookies.settings.trueCyclius) {
+				switch(slot) {
+					case 1: interval = 3; break;
+					case 2: interval = 12; break;
+					case 3: interval = 24; break;
+				}
+				rotation = OmniCookies.cycliusCalc(interval) - Math.PI/2;
+				icon.style.transform = `rotate(${rotation}rad)`;
+			} else {
+				icon.style.removeProperty('transform');
+			}
+		} else {
+			if(OmniCookies.patchedTrueCyclius) icon.style.removeProperty('transform');
+		}
+	} else {
+		OmniCookies.patchedTrueCyclius = false;
+	}
+}
+
 //#endregion
 //==============================//
 
@@ -898,32 +960,7 @@ OmniCookies.init = function() {
 	});
 
 	Game.registerHook('draw', function() {
-		// wheeeee test
-		if(OmniCookies.settings.trueCyclius) {
-			let cyclius = document.getElementById('templeGod3');
-			if(cyclius && Game.hasGod('ages')) {
-				let icon = cyclius.getElementsByClassName('usesIcon')[0];
-				if(icon.classList.contains('shadowFilter')) {
-					let div = document.createElement('div');
-					div.classList.add('templeIcon');
-					div.classList.add('shadowFilter');
-					div.style.margin = 'unset';
-					icon.classList.remove('shadowFilter');
-					icon.style.animation = 'none';
-					cyclius.removeChild(icon);
-					cyclius.appendChild(div);
-					div.appendChild(icon);
-				}
-				let interval = 0;
-				switch(Game.hasGod('ages')) {
-					case 1: interval = 3; break;
-					case 2: interval = 12; break;
-					case 3: interval = 24; break;
-				}
-				let rotation = (Date.now()/1000/(60*60*interval))*Math.PI*2 - Math.PI/2;
-				icon.style.transform = 'rotate('+rotation+'rad)';
-			}
-		}
+		
 	});
 
 	// Reset stock average data when resetting

@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 7'
+	version: 'v1.3.0 BETA 8'
 };
 
 OmniCookies.settings = {
@@ -873,6 +873,7 @@ OmniCookies.patchPantheonTooltips = function() {
 			insertBr('industry');
 			insertBr('mother');
 		}
+		clearInterval(pantheonTooltipInterval);
 	}, 250);
 }
 

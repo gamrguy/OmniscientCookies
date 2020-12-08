@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 39'
+	version: 'v1.3.0 BETA 1'
 };
 
 OmniCookies.settings = {
@@ -136,7 +136,7 @@ OmniCookies.toggleSetting = function(buttonId, settingName, onText, offText, onF
 
 OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunctionName, offFunctionName) {
 	let div = document.createElement('div');
-	div.className = 'listing';
+	//div.className = 'listing';
 	
 	let set = OmniCookies.settings[settingName];
 	let buttonId = "OmniCookiesButton_" + settingName;
@@ -180,23 +180,26 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Graphics settings
 
-	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
+	let gfxList = document.createElement('div');
+	gfxList.className = 'listing';
+
+	gfxList.appendChild(OmniCookies.makeButton('autoScrollbar',
 		'Autohide center scrollbar ON', 'Autohide center scrollbar OFF',
 		'(the scrollbar in the center view will hide itself when appropriate)',
 		OmniCookies.autoScrollbar, OmniCookies.showScrollbar
 	));
 
-	frag.appendChild(OmniCookies.makeButton('scrollingBuildings',
+	gfxList.appendChild(OmniCookies.makeButton('scrollingBuildings',
 		'Scroll buildings ON', 'Scroll buildings OFF',
 		'(hovering over the left/right edges of buildings produces a scroll effect)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('smoothBuildings',
+	gfxList.appendChild(OmniCookies.makeButton('smoothBuildings',
 		'Smooth buildings ON', 'Smooth buildings OFF',
 		'(buildings draw every frame, instead of every 3 frames)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
+	gfxList.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
 		'Improved building tooltips ON', 'Improved building tooltips OFF',
 		'(building tooltips in the shop look a little better; disabling requires refresh)',
 		function() {
@@ -204,7 +207,7 @@ OmniCookies.customOptionsMenu = function() {
 		}
 	));
 
-	frag.appendChild(OmniCookies.makeButton('betterGrandmas',
+	gfxList.appendChild(OmniCookies.makeButton('betterGrandmas',
 		'Grandma fixes ON', 'Grandma fixes OFF',
 		'(text and ordering fixes for grandma synergy upgrades; disabling requires refresh)',
 		function() {
@@ -212,26 +215,28 @@ OmniCookies.customOptionsMenu = function() {
 		}
 	));
 
-	frag.appendChild(OmniCookies.makeButton('separateTechs',
+	gfxList.appendChild(OmniCookies.makeButton('separateTechs',
 		'Separate techs ON', 'Separate techs OFF',
 		'(gives tech upgrades their own upgrade category under cookies)',
 		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
-	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
+	gfxList.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
 		'Buildings always fancy ON', 'Buildings always fancy OFF',
 		'(buildings are drawn at normal speed regardless of the Fancy setting)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
+	gfxList.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
 		'Cursors always fancy ON', 'Cursors always fancy OFF',
 		'(cursors are animated regardless of the Fancy setting)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
+	gfxList.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
 		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
 		'(wrinklers are animated regardless of the Fancy setting)'
 	));
+
+	frag.appendChild(gfxList);
 
 	//#endregion
 	//==========================//
@@ -241,16 +246,21 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region QoL settings
 
-	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
+	let qolList = document.createElement('div');
+	qolList.className = 'listing';
+
+	qolList.appendChild(OmniCookies.makeButton('enhancedBulk',
 		'Enhanced bulk ON', 'Enhanced bulk OFF',
 		'(allows partial and maximum bulk purchases)',
 		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
 	));
 
-	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
+	qolList.appendChild(OmniCookies.makeButton('buffTooltipDuration',
 		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
 		'(buffs will show their current duration in their tooltip)'
 	));
+
+	frag.appendChild(qolList);
 
 	//#endregion
 	//==========================//
@@ -260,15 +270,20 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Stock Market settings
 
-	frag.appendChild(OmniCookies.makeButton('stockValueData',
+	let stockList = document.createElement('div');
+	stockList.className = 'listing';
+
+	stockList.appendChild(OmniCookies.makeButton('stockValueData',
 		'Stock value data ON', 'Stock value data OFF',
 		'(displays information about how profitable your stocks are)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
+	stockList.appendChild(OmniCookies.makeButton('dangerousStocks',
 		'Dangerous stocks ON', 'Dangerous stocks OFF',
 		'(stock market affects total cookies earned)'
 	));
+
+	frag.appendChild(stockList);
 
 	//#endregion
 	//==========================//
@@ -278,21 +293,26 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Pantheon settings
 
-	frag.appendChild(OmniCookies.makeButton('detailedCyclius',
+	let pantheonList = document.createElement('div');
+	pantheonList.className = 'listing';
+
+	pantheonList.appendChild(OmniCookies.makeButton('detailedCyclius',
 		'Cyclius details ON', 'Cyclius details OFF',
 		'(shows Cyclius\' current cycles in his tooltip)',
 		function() { OmniCookies.toggleCyclius(); }
 	));
 	
-	frag.appendChild(OmniCookies.makeButton('zonedCyclius',
+	pantheonList.appendChild(OmniCookies.makeButton('zonedCyclius',
 		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
 		'(offsets Cyclius based on your time zone, towards GMT+1)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+	pantheonList.appendChild(OmniCookies.makeButton('trueCyclius',
 		'True Cyclius ON', 'True Cyclius OFF',
 		'(Cyclius shows off his power with style)'
 	));
+
+	frag.appendChild(pantheonList);
 
 	//#endregion
 	//==========================//
@@ -302,15 +322,20 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Experimental settings
 
-	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
+	let expList = document.createElement('div');
+	expList.className = 'listing';
+
+	expList.appendChild(OmniCookies.makeButton('optimizeBuildings',
 		'Buildings draw smart ON', 'Buildings draw smart OFF',
 		'(experimental; buildings attempt to skip unnecessary draw frames)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('preserveWrinklers',
+	expList.appendChild(OmniCookies.makeButton('preserveWrinklers',
 		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
 	));
+
+	frag.appendChild(expList);
 
 	//#endregion
 	//==========================//

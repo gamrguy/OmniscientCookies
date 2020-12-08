@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 6'
+	version: 'v1.3.0 BETA 7'
 };
 
 OmniCookies.settings = {
@@ -830,7 +830,7 @@ OmniCookies.patchPantheonInfo = function() {
 						let mult = 0.15*Math.sin(OmniCookies.cycliusCalc(interval)) * 100;
 						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
 						let sign = mult > 0 ? '+' : '';
-						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
+						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS.</div>`;
 					}
 					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.</div>${effect}`;
 				}
@@ -855,6 +855,25 @@ OmniCookies.toggleCyclius = function() {
 		cyclius.activeDescFunc = cyclius.activeDescBackup;
 		cyclius.activeDescBackup = undefined; // I'm really, really sorry
 	}
+}
+
+OmniCookies.patchPantheonTooltips = function() {
+	let pantheonTooltipInterval = setInterval(function() {
+		let pantheon = Game.Objects['Temple'].minigame;
+		if(pantheon) {
+			let insertBr = function(god) {
+				god = pantheon.gods[god];
+				god.desc1 = god.desc1.replace('</span> ', '$&<br>');
+				god.desc2 = god.desc2.replace('</span> ', '$&<br>');
+				god.desc3 = god.desc3.replace('</span> ', '$&<br>');
+			}
+			insertBr('decadence');
+			insertBr('creation');
+			insertBr('labor');
+			insertBr('industry');
+			insertBr('mother');
+		}
+	}, 250);
 }
 
 // Updates the bulk buy selection for when the option is toggled

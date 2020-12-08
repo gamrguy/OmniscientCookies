@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 22'
+	version: 'v1.2.5 BETA 23'
 };
 
 OmniCookies.settings = {
@@ -665,9 +665,9 @@ OmniCookies.patchPantheonInfo = function() {
 				}
 			];
 			pantheon.godTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
-				functionPattern, `var M = Game.Objects['Bank'].minigame;`);
+				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
 			pantheon.slotTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
-				functionPattern, `var M = Game.Objects['Bank'].minigame;`);
+				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
 
 			// Display Cyclius values
 			let cycliusFunc = function(interval) {
@@ -677,9 +677,9 @@ OmniCookies.patchPantheonInfo = function() {
 						let mult = 0.15*Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2) * 100;
 						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
 						let sign = mult > 0 ? '+' : '';
-						effect = `(<span class="${color}" style="text-align:right;">${sign}${Beautify(mult,2)}% base CpS</span>)`;
+						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
 					}
-					return `Effect cycles over ${interval} hours.${effect}`;
+					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.${effect}`;
 				}
 			}
 			let cyclius = pantheon.gods['ages'];

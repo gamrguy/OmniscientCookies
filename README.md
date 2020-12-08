@@ -49,6 +49,7 @@ Serves as an unintrusive, immersive alternative to Cookie Monster or Klattmose's
 Improved buff tooltip visuals (not toggleable)
 ----------------------------------------------
 Disables text wrapping within buff tooltips so text doesn't get chopped into the next line.  
+Also fixes the clipping that occurs with the feather icons in buffs with long titles.
 Additionally, when a buff is updated with a new maximum time, the tooltip description updates to match.
 
 Improved building tooltips (enabled by default)

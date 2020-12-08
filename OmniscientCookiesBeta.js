@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 32'
+	version: 'v1.2.5 BETA 33'
 };
 
 OmniCookies.settings = {
@@ -219,7 +219,7 @@ OmniCookies.customOptionsMenu = function() {
 		function() { OmniCookies.toggleCyclius(); }
 	));
 	
-	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+	frag.appendChild(OmniCookies.makeButton('zonedCyclius',
 		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
 		'(offsets Cyclius based on your time zone, towards GMT+1)'
 	));

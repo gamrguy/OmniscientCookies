@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 27'
+	version: 'v1.2.5 BETA 28'
 };
 
 OmniCookies.settings = {
@@ -19,7 +19,8 @@ OmniCookies.settings = {
 	preserveWrinklers: false,
 	detailedGods: true,
 	stockValueData: true,
-	dangerousStocks: false
+	dangerousStocks: false,
+	trueCyclius: false
 }
 
 OmniCookies.saveData = {}
@@ -237,6 +238,11 @@ OmniCookies.customOptionsMenu = function() {
 	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
 		'Dangerous stocks ON', 'Dangerous stocks OFF',
 		'(stock market affects total cookies earned)'
+	));
+
+	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+		'True cyclius ON', 'True cyclius OFF',
+		'(Cyclius shows off his power with style)'
 	));
 
 	l('menu').childNodes[2].insertBefore(frag, l('menu').childNodes[2].childNodes[l('menu').childNodes[2].childNodes.length - 1]);
@@ -889,23 +895,34 @@ OmniCookies.init = function() {
 	// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
 	Game.registerHook('logic', function() {
 		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
+	});
 
+	Game.registerHook('draw', function() {
 		// wheeeee test
-		var cyclius = document.getElementById('templeGod3');
-		if(cyclius) {
-			var icon = cyclius.getElementsByClassName('usesIcon')[0];
-			if(icon.classList.contains('shadowFilter')) {
-				var div = document.createElement('div');
-				div.classList.add('templeIcon');
-				div.classList.add('shadowFilter');
-				div.style.margin = 'unset';
-				icon.classList.remove('shadowFilter');
-				icon.style.animation = 'none';
-				cyclius.removeChild(icon);
-				cyclius.appendChild(div);
-				div.appendChild(icon);
+		if(OmniCookies.settings.trueCyclius) {
+			let cyclius = document.getElementById('templeGod3');
+			if(cyclius && Game.hasGod('ages')) {
+				let icon = cyclius.getElementsByClassName('usesIcon')[0];
+				if(icon.classList.contains('shadowFilter')) {
+					let div = document.createElement('div');
+					div.classList.add('templeIcon');
+					div.classList.add('shadowFilter');
+					div.style.margin = 'unset';
+					icon.classList.remove('shadowFilter');
+					icon.style.animation = 'none';
+					cyclius.removeChild(icon);
+					cyclius.appendChild(div);
+					div.appendChild(icon);
+				}
+				let interval = 0;
+				switch(Game.hasGod('ages')) {
+					case 1: interval = 3;
+					case 2: interval = 12;
+					case 3: interval = 24;
+				}
+				let rotation = Math.sin((Date.now()/1000/(60*60*interval))*Math.PI*2);
+				icon.style.transform = 'rotate('+rotation+'rad)';
 			}
-			icon.style.transform = 'rotate('+((Game.T%30)/30)*Math.PI*2+'rad)';
 		}
 	});
 

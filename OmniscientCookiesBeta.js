@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 24'
+	version: 'v1.2.5 BETA 25'
 };
 
 OmniCookies.settings = {
@@ -225,7 +225,8 @@ OmniCookies.customOptionsMenu = function() {
 
 	frag.appendChild(OmniCookies.makeButton('detailedGods',
 		'Detailed gods ON', 'Detailed gods OFF',
-		'(adds more detailed information on some Pantheon gods)'
+		'(adds more detailed information on some Pantheon gods)',
+		function() { OmniCookies.toggleCyclius(); }
 	));
 
 	frag.appendChild(OmniCookies.makeButton('stockValueData',
@@ -666,7 +667,7 @@ OmniCookies.patchPantheonInfo = function() {
 			];
 			pantheon.godTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
 				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
-			pantheon.slotTooltip = OmniCookies.replaceCode(pantheon.godTooltip, 
+			pantheon.slotTooltip = OmniCookies.replaceCode(pantheon.slotTooltip, 
 				functionPattern, `var M = Game.Objects['Temple'].minigame;`);
 
 			// Display Cyclius values
@@ -683,8 +684,7 @@ OmniCookies.patchPantheonInfo = function() {
 				}
 			}
 			let cyclius = pantheon.gods['ages'];
-			//cyclius.activeDescBackup = cyclius.activeDescFunc;
-			//cyclius.activeDescFunc = false;
+			OmniCookies.toggleCyclius();
 			cyclius.desc1 = cycliusFunc(3);
 			cyclius.desc2 = cycliusFunc(12);
 			cyclius.desc3 = cycliusFunc(24);
@@ -692,6 +692,17 @@ OmniCookies.patchPantheonInfo = function() {
 			clearInterval(patchPantheonInfoInterval);
 		}
 	}, 250);
+}
+OmniCookies.toggleCyclius = function() {
+	let pantheon = Game.Objects['Temple'].minigame;
+	let cyclius = pantheon.gods['ages'];
+	if(cyclius.activeDescFunc) {
+		cyclius.activeDescBackup = cyclius.activeDescFunc;
+		cyclius.activeDescFunc = undefined;
+	} else {
+		cyclius.activeDescFunc = cyclius.activeDescBackup;
+		cyclius.activeDescBackup = undefined;
+	}
 }
 
 // Updates the bulk buy selection for when the option is toggled

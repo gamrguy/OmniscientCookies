@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 1'
+	version: 'v1.3.0 BETA 2'
 };
 
 OmniCookies.settings = {
@@ -22,6 +22,7 @@ OmniCookies.settings = {
 	trueCyclius: false,
 	stockValueData: true,
 	dangerousStocks: false,
+	cursorsBypassFancyNum: 2
 }
 
 OmniCookies.saveData = {}
@@ -134,9 +135,20 @@ OmniCookies.toggleSetting = function(buttonId, settingName, onText, offText, onF
     PlaySound('snd/tick.mp3');
 }
 
+OmniCookies.toggleOptionedSetting = function(buttonId, settingName, options) {
+	OmniCookies.settings[settingName]++;
+	if(OmniCookies.settings[settingName] >= options.length) OmniCookies.settings[settingName] = 0;
+	let element = document.getElementById(buttonId);
+	let selected = options[OmniCookies.settings[settingName]];
+	if(selected.off) element.classList.add('off');
+	else element.classList.remove('off');
+	if(selected.func) selected.func();
+	element.innerHTML = selected.text;
+    PlaySound('snd/tick.mp3');
+}
+
 OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunctionName, offFunctionName) {
 	let div = document.createElement('div');
-	//div.className = 'listing';
 	
 	let set = OmniCookies.settings[settingName];
 	let buttonId = "OmniCookiesButton_" + settingName;
@@ -145,6 +157,26 @@ OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunction
 	a.className = 'option' + (set ? '' : ' off');
 	a.onclick = function() {OmniCookies.toggleSetting(buttonId, settingName, onText, offText, onFunctionName, offFunctionName)};
 	a.textContent = set ? onText : offText;
+	div.appendChild(a);
+
+	var label = document.createElement('label');
+	label.textContent = desc;
+	div.appendChild(label);
+
+	return div;
+}
+
+OmniCookies.makeOptionedButton = function(settingName, desc, options) {
+	let div = document.createElement('div');
+	
+	let set = OmniCookies.settings[settingName];
+	let selected = options[set];
+	let buttonId = "OmniCookiesButton_" + settingName;
+	var a = document.createElement('a');
+	a.id = buttonId;
+	a.className = 'option' + (selected.off ? ' off' : '');
+	a.onclick = function() {OmniCookies.toggleOptionedSetting(buttonId, settingName, options)};
+	a.textContent = selected.text;
 	div.appendChild(a);
 
 	var label = document.createElement('label');
@@ -226,9 +258,17 @@ OmniCookies.customOptionsMenu = function() {
 		'(buildings are drawn at normal speed regardless of the Fancy setting)'
 	));
 
-	gfxList.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
+	/*gfxList.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
 		'Cursors always fancy ON', 'Cursors always fancy OFF',
 		'(cursors are animated regardless of the Fancy setting)'
+	));*/
+
+	gfxList.appendChild(OmniCookies.makeOptionedButton('cursorsBypassFancyNum',
+		'(cursors follow this setting rather than default)', [
+			{ text: 'Cursors always FANCY' },
+			{ text: 'Cursors always FAST' },
+			{ text: 'Cursors always DEFAULT', off: true }
+		]
 	));
 
 	gfxList.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
@@ -664,8 +704,8 @@ OmniCookies.patchFancyBuildings = function() {
 OmniCookies.patchFancyCursors = function() {
 	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
 		{
-			pattern: /(var fancy=Game\.prefs\.fancy)(;)/,
-			replacement: '$1 || OmniCookies.settings.cursorsBypassFancy$2'
+			pattern: /(var fancy=)(Game\.prefs\.fancy)(;)/,
+			replacement: '($2 || OmniCookies.settings.cursorsBypassFancyNum == 0) && OmniCookies.settings.cursorsBypassFancyNum != 1$3'
 		}
 	]);
 }

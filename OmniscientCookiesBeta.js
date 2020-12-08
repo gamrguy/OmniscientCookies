@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.2.5 BETA 26'
+	version: 'v1.2.5 BETA 27'
 };
 
 OmniCookies.settings = {
@@ -905,7 +905,7 @@ OmniCookies.init = function() {
 				cyclius.appendChild(div);
 				div.appendChild(icon);
 			}
-			icon.style.transform = 'rotate('+(Game.T%30)*Math.PI+'rad)';
+			icon.style.transform = 'rotate('+((Game.T%30)/30)*Math.PI*2+'rad)';
 		}
 	});
 

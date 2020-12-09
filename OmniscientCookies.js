@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.1'
+	version: 'v1.3.2'
 };
 OmniCookies.settings = {
 	autoScrollbar: true,
@@ -72,7 +72,7 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	}
 	
 	totalPrice = OmniCookies.quickCalcBulkPrice(building, amount);
-	maxAmount = Math.min(amount, OmniCookies.quickCalcMaxBuy(building));
+	maxAmount = Math.min(amount, OmniCookies.quickCalcMaxBuy(building) + building.free);
 	maxPrice = OmniCookies.quickCalcBulkPrice(building, maxAmount);
 
 	return {
@@ -99,7 +99,7 @@ OmniCookies.powerSumRange = function(x, start, end) {
 // Thanks to staticvariablejames on the Discord server
 OmniCookies.quickCalcMaxBuy = function(building) {
     let cookies = Game.cookies;
-    cookies /= building.basePrice;
+    cookies /= Game.modifyBuildingPrice(building, building.basePrice);
 	let boughtCount = building.amount - building.free;
 	let priceInc = Game.priceIncrease;
     return Math.floor(Math.log(priceInc**boughtCount + (priceInc - 1)*cookies)/Math.log(priceInc) - building.amount);
@@ -107,7 +107,7 @@ OmniCookies.quickCalcMaxBuy = function(building) {
 
 // Fast function for calculating the price of # buildings
 OmniCookies.quickCalcBulkPrice = function(building, bulk, sell) {
-	let buildingCount = building.amount - building.free;
+	let buildingCount = Math.max(0, building.amount - building.free);
 	let sum = OmniCookies.powerSumRange(Game.priceIncrease, buildingCount, buildingCount + bulk-1);
 	sum = Game.modifyBuildingPrice(building, sum*building.basePrice);
 	if(sell) sum *= building.getSellMultiplier();

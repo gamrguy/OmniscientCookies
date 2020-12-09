@@ -1125,7 +1125,6 @@ OmniCookies.init = function() {
 	OmniCookies.patchDangerousStocks();
 	OmniCookies.patchPantheonInfo();
 	OmniCookies.patchCycliusGains();
-	//OmniCookies.patchPantheonTooltips();
 
 	Game.registerHook('logic', function() {
 		// On enhanced bulk setting, regularly refresh the store to account for changes in cookies

@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.1 BETA 10'
+	version: 'v1.3.1 BETA 11'
 };
 
 OmniCookies.settings = {
@@ -71,7 +71,7 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	}
 	
 	totalPrice = OmniCookies.quickCalcBulkPrice(building, amount);
-	maxAmount = OmniCookies.quickCalcMaxBuy(building);
+	maxAmount = Math.min(amount, OmniCookies.quickCalcMaxBuy(building));
 	maxPrice = OmniCookies.quickCalcBulkPrice(building, Math.min(maxAmount, amount));
 
 	return {

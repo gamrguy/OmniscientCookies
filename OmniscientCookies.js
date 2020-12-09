@@ -65,6 +65,8 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 
 	// if you have infinity, you can get infinity. yep
 	// will you have infinity? if you're cheating maybe lol
+	// oh but please don't do this while the vanilla game still uses for loops
+	// you'll just crash anyways
 	if(Game.cookies == Infinity && amount == Infinity) {
 		return { totalPrice: Infinity, maxPrice: Infinity, maxAmount: amount };
 	}
@@ -367,14 +369,14 @@ OmniCookies.customOptionsMenu = function() {
 	
 	pantheonList.appendChild(OmniCookies.makeButton('zonedCyclius',
 		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
-		'(offsets Cyclius based on your time zone, towards GMT+1)'
+		'(offsets Cyclius based on your time zone, towards GMT+1)',
+		function() { Game.recalculateGains = 1; },
+		function() { Game.recalculateGains = 1; }
 	));
 
 	pantheonList.appendChild(OmniCookies.makeButton('trueCyclius',
 		'True Cyclius ON', 'True Cyclius OFF',
-		'(Cyclius shows off his power with style)',
-		function() { Game.recalculateGains = 1; },
-		function() { Game.recalculateGains = 1; }
+		'(Cyclius shows off his power with style)'
 	));
 
 	frag.appendChild(pantheonList);

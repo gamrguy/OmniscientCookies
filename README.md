@@ -31,8 +31,7 @@ Autohide center scrollbar (enabled by default)
 
 ![Hide scrollbar](doc/hidescrollbar.png "Center scrollbar hides itself automatically")
 
-A small CSS tweak that automatically hides the scrollbar in the center panel  
-when enough buildings have been muted.
+A small CSS tweak that automatically hides the scrollbar in the center panel when enough buildings have been muted.
 
 Building scroll (enabled by default)
 ------------------------------------
@@ -50,7 +49,7 @@ This greatly improves the smoothness of hovering over grandmas and the **Buildin
 Improved buff tooltip visuals (not toggleable)
 ----------------------------------------------
 Disables text wrapping within buff tooltips so text doesn't get chopped into the next line.  
-Also fixes the clipping that occurs with the feather icons in buffs with long titles.
+Also fixes the clipping that occurs with the feather icons in buffs with long titles.  
 Additionally, when a buff is updated with a new maximum time, the tooltip description updates to match.
 
 Improved building tooltips (enabled by default)
@@ -134,7 +133,7 @@ Shows the current values of Cyclius' cycles in his tooltip.
 
 Timezoned Cyclius (disabled by default)
 ---------------------------------------
-Shifts Cyclius' cycles based on your timezone.
+Shifts Cyclius' cycles based on your timezone.  
 Time is shifted towards GMT+1, such that the 24h cycle zeroes out at 0:00 and 12:00.
 
 True Cyclius (disabled by default)
@@ -153,7 +152,7 @@ May improve performance with no cost to visuals.
 
 Wrinkler preservation (experimental; disabled by default)
 ---------------------------------------------------------
-Normally, the game only saves the overall stats of your wrinklers.
-When you refresh the game, wrinklers are placed in a defined order with cookies evenly split between them.
-This setting intends to restore all of the wrinkler stats.
+Normally, the game only saves the overall stats of your wrinklers.  
+When you refresh the game, wrinklers are placed in a defined order with cookies evenly split between them.  
+This setting intends to restore all of the wrinkler stats.  
 To prevent wrinkler duplication, this attempts to only apply if the difference between versions is within 0.1%.

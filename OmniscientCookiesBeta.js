@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.1 BETA 9'
+	version: 'v1.3.1 BETA 10'
 };
 
 OmniCookies.settings = {
@@ -567,8 +567,8 @@ OmniCookies.patchBuildings = function() {
 
 // Patches building tooltips to look a bit better in some cases
 OmniCookies.patchBuildingTooltips = function() {
-	OmniCookies.patchedBuildingTooltips = true;
 	if(OmniCookies.patchedBuildingTooltips) return;
+	OmniCookies.patchedBuildingTooltips = true;
 
 	let tooltipPattern = [
 		{
@@ -679,8 +679,8 @@ OmniCookies.patchBuffTooltips = function() {
 // Adds a line break to grandma synergy upgrades
 // Fixes the ordering of grandma upgrades in the stats menu
 OmniCookies.patchGrandmaUpgrades = function() {
-	OmniCookies.patchedGrandmas = true;
 	if(OmniCookies.patchedGrandmas) return;
+	OmniCookies.patchedGrandmas = true;
 
 	// Add a line break between the two effects
 	for(let i of Game.GrandmaSynergies) {

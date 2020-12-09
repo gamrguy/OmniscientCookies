@@ -863,7 +863,7 @@ OmniCookies.patchPantheonInfo = function() {
 						let num = Beautify(mult,2);
 						if(num == "0") color = ''; // if Beautify gives 0
 						if(mult < -0.1 && num == "0") color = 'red'; // if Beautify gives a bad 0
-						if(mult < 0 && !num.contains('-')) num = '-' + num; // if Beautify forgets to give a -
+						if(mult < 0 && !num.includes('-')) num = '-' + num; // if Beautify forgets to give a -
 						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${num}% base CpS.</div>`;
 					}
 					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.</div>${effect}`;

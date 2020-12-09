@@ -1,8 +1,7 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0'
+	version: 'v1.3.1'
 };
-
 OmniCookies.settings = {
 	autoScrollbar: true,
 	scrollingBuildings: true,
@@ -12,16 +11,16 @@ OmniCookies.settings = {
 	betterGrandmas: true,
 	separateTechs: true,
 	enhancedBulk: true,
-	buildingsBypassFancy: false,
-	cursorsBypassFancy: false,
-	wrinklersBypassFancy: false,
+	buildingsBypassFancy: 2,
+	cursorsBypassFancy: 2,
+	wrinklersBypassFancy: 2,
 	optimizeBuildings: false,
 	preserveWrinklers: false,
 	detailedCyclius: true,
 	zonedCyclius: false,
 	trueCyclius: false,
 	stockValueData: true,
-	dangerousStocks: false,
+	dangerousStocks: false
 }
 
 OmniCookies.saveData = {}
@@ -64,30 +63,55 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	let maxAmount = 0;
 	if(amount == -1) amount = Infinity;
 
-	// don't crash the game if you have infinite cookies
+	// if you have infinity, you can get infinity. yep
+	// will you have infinity? if you're cheating maybe lol
+	// oh but please don't do this while the vanilla game still uses for loops
+	// you'll just crash anyways
 	if(Game.cookies == Infinity && amount == Infinity) {
 		return { totalPrice: Infinity, maxPrice: Infinity, maxAmount: amount };
 	}
-
-	for (let i = building.amount; i < building.amount + amount; i++)
-	{
-		let price = building.basePrice * Math.pow(Game.priceIncrease, Math.max(0, i-building.free));
-		price = Game.modifyBuildingPrice(building, price);
-		totalPrice += price;
-		if(Game.cookies >= Math.ceil(totalPrice)) {
-			maxPrice = totalPrice;
-			maxAmount++;
-		} else if(amount == Infinity) {
-			totalPrice = Infinity;
-			break;
-		}
-	}
 	
+	totalPrice = OmniCookies.quickCalcBulkPrice(building, amount);
+	maxAmount = Math.min(amount, OmniCookies.quickCalcMaxBuy(building));
+	maxPrice = OmniCookies.quickCalcBulkPrice(building, maxAmount);
+
 	return {
-		totalPrice: Math.ceil(totalPrice),
-		maxPrice: Math.ceil(maxPrice),
+		totalPrice: totalPrice,
+		maxPrice: maxPrice,
 		maxAmount: maxAmount
 	};
+}
+
+// Calculates the value of the sum of given range of powers of X
+// Can be used to calculate bulk building prices
+OmniCookies.powerSumRange = function(x, start, end) {
+	if(x < 0) return -1;           // please don't
+	if(x == 0) return 0;           // obviously
+	if(x == 1) return end - start; // come on man
+	if(start == end) return x**start; // really, this is getting old
+	
+	let sum1 = (x**(start) - 1)/(x - 1); // sum from 0 to start-1
+	let sum2 = (x**(end+1) - 1)/(x - 1);   // sum from 0 to end
+	return sum2 - sum1; // sum from start to end
+}
+
+// Fast function for calculating the maximum # of a building that can be bought
+// Thanks to staticvariablejames on the Discord server
+OmniCookies.quickCalcMaxBuy = function(building) {
+    let cookies = Game.cookies;
+    cookies /= building.basePrice;
+	let boughtCount = building.amount - building.free;
+	let priceInc = Game.priceIncrease;
+    return Math.floor(Math.log(priceInc**boughtCount + (priceInc - 1)*cookies)/Math.log(priceInc) - building.amount);
+}
+
+// Fast function for calculating the price of # buildings
+OmniCookies.quickCalcBulkPrice = function(building, bulk, sell) {
+	let buildingCount = building.amount - building.free;
+	let sum = OmniCookies.powerSumRange(Game.priceIncrease, buildingCount, buildingCount + bulk-1);
+	sum = Game.modifyBuildingPrice(building, sum*building.basePrice);
+	if(sell) sum *= building.getSellMultiplier();
+	return Math.ceil(sum);
 }
 
 // Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
@@ -107,6 +131,11 @@ OmniCookies.loadData = function(data, into) {
 	if(data) {
 		for(key of Object.keys(data)) {
 			if(key in into) {
+				// convert from old boolean buttons to new optioned buttons
+				// for these buttons in particular, 0 was "on" and 2 is now "off"
+				if(typeof data[key] == 'boolean' && typeof into[key] == 'number') {
+					data[key] = data[key] ? 0 : 2;
+				}
 				into[key] = data[key];
 			}
 		}
@@ -134,9 +163,20 @@ OmniCookies.toggleSetting = function(buttonId, settingName, onText, offText, onF
     PlaySound('snd/tick.mp3');
 }
 
+OmniCookies.toggleOptionedSetting = function(buttonId, settingName, options) {
+	OmniCookies.settings[settingName]++;
+	if(OmniCookies.settings[settingName] >= options.length) OmniCookies.settings[settingName] = 0;
+	let element = document.getElementById(buttonId);
+	let selected = options[OmniCookies.settings[settingName]];
+	if(selected.off) element.classList.add('off');
+	else element.classList.remove('off');
+	if(selected.func) selected.func();
+	element.innerHTML = selected.text;
+    PlaySound('snd/tick.mp3');
+}
+
 OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunctionName, offFunctionName) {
 	let div = document.createElement('div');
-	div.className = 'listing';
 	
 	let set = OmniCookies.settings[settingName];
 	let buttonId = "OmniCookiesButton_" + settingName;
@@ -145,6 +185,26 @@ OmniCookies.makeButton = function(settingName, onText, offText, desc, onFunction
 	a.className = 'option' + (set ? '' : ' off');
 	a.onclick = function() {OmniCookies.toggleSetting(buttonId, settingName, onText, offText, onFunctionName, offFunctionName)};
 	a.textContent = set ? onText : offText;
+	div.appendChild(a);
+
+	var label = document.createElement('label');
+	label.textContent = desc;
+	div.appendChild(label);
+
+	return div;
+}
+
+OmniCookies.makeOptionedButton = function(settingName, desc, options) {
+	let div = document.createElement('div');
+	
+	let set = OmniCookies.settings[settingName];
+	let selected = options[set];
+	let buttonId = "OmniCookiesButton_" + settingName;
+	var a = document.createElement('a');
+	a.id = buttonId;
+	a.className = 'option' + (selected.off ? ' off' : '');
+	a.onclick = function() {OmniCookies.toggleOptionedSetting(buttonId, settingName, options)};
+	a.textContent = selected.text;
 	div.appendChild(a);
 
 	var label = document.createElement('label');
@@ -180,58 +240,68 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Graphics settings
 
-	frag.appendChild(OmniCookies.makeButton('autoScrollbar',
+	let gfxList = document.createElement('div');
+	gfxList.className = 'listing';
+
+	gfxList.appendChild(OmniCookies.makeButton('autoScrollbar',
 		'Autohide center scrollbar ON', 'Autohide center scrollbar OFF',
 		'(the scrollbar in the center view will hide itself when appropriate)',
 		OmniCookies.autoScrollbar, OmniCookies.showScrollbar
 	));
 
-	frag.appendChild(OmniCookies.makeButton('scrollingBuildings',
+	gfxList.appendChild(OmniCookies.makeButton('scrollingBuildings',
 		'Scroll buildings ON', 'Scroll buildings OFF',
 		'(hovering over the left/right edges of buildings produces a scroll effect)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('smoothBuildings',
+	gfxList.appendChild(OmniCookies.makeButton('smoothBuildings',
 		'Smooth buildings ON', 'Smooth buildings OFF',
 		'(buildings draw every frame, instead of every 3 frames)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
+	gfxList.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
 		'Improved building tooltips ON', 'Improved building tooltips OFF',
 		'(building tooltips in the shop look a little better; disabling requires refresh)',
-		function() {
-			if(!OmniCookies.patchedBuildingTooltips) OmniCookies.patchBuildingTooltips();
-		}
+		function() { OmniCookies.patchBuildingTooltips(); }
 	));
 
-	frag.appendChild(OmniCookies.makeButton('betterGrandmas',
+	gfxList.appendChild(OmniCookies.makeButton('betterGrandmas',
 		'Grandma fixes ON', 'Grandma fixes OFF',
 		'(text and ordering fixes for grandma synergy upgrades; disabling requires refresh)',
-		function() {
-			if(!OmniCookies.patchedGrandmas) OmniCookies.patchGrandmaUpgrades();
-		}
+		function() { OmniCookies.patchGrandmaUpgrades(); }
 	));
 
-	frag.appendChild(OmniCookies.makeButton('separateTechs',
+	gfxList.appendChild(OmniCookies.makeButton('separateTechs',
 		'Separate techs ON', 'Separate techs OFF',
 		'(gives tech upgrades their own upgrade category under cookies)',
 		function() { OmniCookies.patchTechUpgradeMenu(); }
 	));
 
-	frag.appendChild(OmniCookies.makeButton('buildingsBypassFancy',
-		'Buildings always fancy ON', 'Buildings always fancy OFF',
-		'(buildings are drawn at normal speed regardless of the Fancy setting)'
+	gfxList.appendChild(OmniCookies.makeOptionedButton('buildingsBypassFancy',
+		'(buildings follow this setting rather than default)', [
+			{ text: 'Buildings always FANCY' },
+			{ text: 'Buildings always FAST' },
+			{ text: 'Buildings always DEFAULT', off: true }
+		]
 	));
 
-	frag.appendChild(OmniCookies.makeButton('cursorsBypassFancy',
-		'Cursors always fancy ON', 'Cursors always fancy OFF',
-		'(cursors are animated regardless of the Fancy setting)'
+	gfxList.appendChild(OmniCookies.makeOptionedButton('cursorsBypassFancy',
+		'(cursors follow this setting rather than default)', [
+			{ text: 'Cursors always FANCY' },
+			{ text: 'Cursors always FAST' },
+			{ text: 'Cursors always DEFAULT', off: true }
+		]
 	));
 
-	frag.appendChild(OmniCookies.makeButton('wrinklersBypassFancy',
-		'Wrinklers always fancy ON', 'Wrinklers always fancy OFF',
-		'(wrinklers are animated regardless of the Fancy setting)'
+	gfxList.appendChild(OmniCookies.makeOptionedButton('wrinklersBypassFancy',
+		'(wrinklers follow this setting rather than default)', [
+			{ text: 'Wrinklers always FANCY' },
+			{ text: 'Wrinklers always FAST' },
+			{ text: 'Wrinklers always DEFAULT', off: true }
+		]
 	));
+
+	frag.appendChild(gfxList);
 
 	//#endregion
 	//==========================//
@@ -241,16 +311,21 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region QoL settings
 
-	frag.appendChild(OmniCookies.makeButton('enhancedBulk',
+	let qolList = document.createElement('div');
+	qolList.className = 'listing';
+
+	qolList.appendChild(OmniCookies.makeButton('enhancedBulk',
 		'Enhanced bulk ON', 'Enhanced bulk OFF',
 		'(allows partial and maximum bulk purchases)',
 		function() {OmniCookies.updateBulkAll()}, function() {OmniCookies.updateBulkAll()}
 	));
 
-	frag.appendChild(OmniCookies.makeButton('buffTooltipDuration',
+	qolList.appendChild(OmniCookies.makeButton('buffTooltipDuration',
 		'Show buff duration in tooltip ON', 'Show buff duration in tooltip OFF',
 		'(buffs will show their current duration in their tooltip)'
 	));
+
+	frag.appendChild(qolList);
 
 	//#endregion
 	//==========================//
@@ -260,15 +335,20 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Stock Market settings
 
-	frag.appendChild(OmniCookies.makeButton('stockValueData',
+	let stockList = document.createElement('div');
+	stockList.className = 'listing';
+
+	stockList.appendChild(OmniCookies.makeButton('stockValueData',
 		'Stock value data ON', 'Stock value data OFF',
 		'(displays information about how profitable your stocks are)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('dangerousStocks',
+	stockList.appendChild(OmniCookies.makeButton('dangerousStocks',
 		'Dangerous stocks ON', 'Dangerous stocks OFF',
 		'(stock market affects total cookies earned)'
 	));
+
+	frag.appendChild(stockList);
 
 	//#endregion
 	//==========================//
@@ -278,21 +358,28 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Pantheon settings
 
-	frag.appendChild(OmniCookies.makeButton('detailedCyclius',
+	let pantheonList = document.createElement('div');
+	pantheonList.className = 'listing';
+
+	pantheonList.appendChild(OmniCookies.makeButton('detailedCyclius',
 		'Cyclius details ON', 'Cyclius details OFF',
 		'(shows Cyclius\' current cycles in his tooltip)',
 		function() { OmniCookies.toggleCyclius(); }
 	));
 	
-	frag.appendChild(OmniCookies.makeButton('zonedCyclius',
+	pantheonList.appendChild(OmniCookies.makeButton('zonedCyclius',
 		'Zoned Cyclius ON', 'Zoned Cyclius OFF',
-		'(offsets Cyclius based on your time zone, towards GMT+1)'
+		'(offsets Cyclius based on your time zone, towards GMT+1)',
+		function() { Game.recalculateGains = 1; },
+		function() { Game.recalculateGains = 1; }
 	));
 
-	frag.appendChild(OmniCookies.makeButton('trueCyclius',
+	pantheonList.appendChild(OmniCookies.makeButton('trueCyclius',
 		'True Cyclius ON', 'True Cyclius OFF',
 		'(Cyclius shows off his power with style)'
 	));
+
+	frag.appendChild(pantheonList);
 
 	//#endregion
 	//==========================//
@@ -302,15 +389,20 @@ OmniCookies.customOptionsMenu = function() {
 	//==========================//
 	//#region Experimental settings
 
-	frag.appendChild(OmniCookies.makeButton('optimizeBuildings',
+	let expList = document.createElement('div');
+	expList.className = 'listing';
+
+	expList.appendChild(OmniCookies.makeButton('optimizeBuildings',
 		'Buildings draw smart ON', 'Buildings draw smart OFF',
 		'(experimental; buildings attempt to skip unnecessary draw frames)'
 	));
 
-	frag.appendChild(OmniCookies.makeButton('preserveWrinklers',
+	expList.appendChild(OmniCookies.makeButton('preserveWrinklers',
 		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
 	));
+
+	frag.appendChild(expList);
 
 	//#endregion
 	//==========================//
@@ -478,7 +570,9 @@ OmniCookies.patchBuildings = function() {
 
 // Patches building tooltips to look a bit better in some cases
 OmniCookies.patchBuildingTooltips = function() {
+	if(OmniCookies.patchedBuildingTooltips) return;
 	OmniCookies.patchedBuildingTooltips = true;
+
 	let tooltipPattern = [
 		{
 			pattern: 'if (synergiesStr!=\'\') synergiesStr+=\', \';',
@@ -588,17 +682,25 @@ OmniCookies.patchBuffTooltips = function() {
 // Adds a line break to grandma synergy upgrades
 // Fixes the ordering of grandma upgrades in the stats menu
 OmniCookies.patchGrandmaUpgrades = function() {
+	if(OmniCookies.patchedGrandmas) return;
 	OmniCookies.patchedGrandmas = true;
 
+	// Add a line break between the two effects
 	for(let i of Game.GrandmaSynergies) {
 		let upgrade = Game.Upgrades[i];
 		upgrade.desc = upgrade.desc.replace(/(efficient\.) /, '$1<br>');
 	}
 
+	// Fix the appearance order of these upgrades in the stats menu
 	Game.Upgrades["Cosmic grandmas"].order += 0.2;
 	Game.Upgrades["Transmuted grandmas"].order += 0.2;
 	Game.Upgrades["Altered grandmas"].order += 0.2;
 	Game.Upgrades["Grandmas' grandmas"].order += 0.2;
+
+	// Fix the appearance order of buildings in the synergy tooltip list
+	Game.GrandmaSynergies.sort(function(a, b) {
+		return Game.Upgrades[a].order - Game.Upgrades[b].order;
+	});
 }
 
 // Creates a new area for Tech upgrades under the Cookie upgrades
@@ -630,7 +732,7 @@ OmniCookies.patchFancyBuildings = function() {
 	Game.Draw = OmniCookies.replaceCode(Game.Draw, [
 		{
 			pattern: 'if (Game.prefs.animate && ((Game.prefs.fancy && Game.drawT%1==0)',
-			replacement: 'if (Game.prefs.animate && (((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy) && Game.drawT%1==0)'
+			replacement: 'if (Game.prefs.animate && ((((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy == 0) && OmniCookies.settings.buildingsBypassFancy != 1) && Game.drawT%1==0)'
 		}
 	]);
 }
@@ -639,8 +741,8 @@ OmniCookies.patchFancyBuildings = function() {
 OmniCookies.patchFancyCursors = function() {
 	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
 		{
-			pattern: /(var fancy=Game\.prefs\.fancy)(;)/,
-			replacement: '$1 || OmniCookies.settings.cursorsBypassFancy$2'
+			pattern: /(var fancy=)(Game\.prefs\.fancy)(;)/,
+			replacement: '$1($2 || OmniCookies.settings.cursorsBypassFancy == 0) && OmniCookies.settings.cursorsBypassFancy != 1$3'
 		}
 	]);
 }
@@ -650,7 +752,7 @@ OmniCookies.patchFancyWrinklers = function() {
 	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
 		{
 			pattern: /Game\.prefs\.fancy/g,
-			replacement: `OmniCookies.settings.wrinklersBypassFancy || $&`
+			replacement: `($& || OmniCookies.settings.wrinklersBypassFancy == 0) && OmniCookies.settings.wrinklersBypassFancy != 1`
 		}
 	], `var inRect = function(x,y,rect)
 		{
@@ -758,9 +860,13 @@ OmniCookies.patchPantheonInfo = function() {
 					let effect = '';
 					if(OmniCookies.settings.detailedCyclius) {
 						let mult = 0.15*Math.sin(OmniCookies.cycliusCalc(interval)) * 100;
-						let color = mult > 0 ? 'green' : (mult == 0 ? '' : 'red');
+						let color = mult > 0 ? 'green' : 'red';
 						let sign = mult > 0 ? '+' : '';
-						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${Beautify(mult,2)}% base CpS</div>`;
+						let num = Beautify(mult,2);
+						if(num == "0") color = ''; // if Beautify gives 0
+						if(mult < -0.1 && num == "0") color = 'red'; // if Beautify gives a bad 0
+						if(mult < 0 && !num.includes('-')) num = '-' + num; // if Beautify forgets to give a -
+						effect = `<div style="display:inline-block;text-align:right;width:50%;" class="${color}">${sign}${num}% base CpS.</div>`;
 					}
 					return `<div style="display:inline-block;width:49%;">Effect cycles over ${interval} hours.</div>${effect}`;
 				}

@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.0 BETA 8'
+	version: 'v1.3.1 BETA 9'
 };
 
 OmniCookies.settings = {
@@ -64,30 +64,51 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	let maxAmount = 0;
 	if(amount == -1) amount = Infinity;
 
-	// don't crash the game if you have infinite cookies
+	// if you have infinity, you can get infinity. yep
+	// will you have infinity? if you're cheating maybe lol
 	if(Game.cookies == Infinity && amount == Infinity) {
 		return { totalPrice: Infinity, maxPrice: Infinity, maxAmount: amount };
 	}
-
-	for (let i = building.amount; i < building.amount + amount; i++)
-	{
-		let price = building.basePrice * Math.pow(Game.priceIncrease, Math.max(0, i-building.free));
-		price = Game.modifyBuildingPrice(building, price);
-		totalPrice += price;
-		if(Game.cookies >= Math.ceil(totalPrice)) {
-			maxPrice = totalPrice;
-			maxAmount++;
-		} else if(amount == Infinity) {
-			totalPrice = Infinity;
-			break;
-		}
-	}
 	
+	totalPrice = OmniCookies.quickCalcBulkPrice(building, amount);
+	maxAmount = OmniCookies.quickCalcMaxBuy(building);
+	maxPrice = OmniCookies.quickCalcBulkPrice(building, Math.min(maxAmount, amount));
+
 	return {
-		totalPrice: Math.ceil(totalPrice),
-		maxPrice: Math.ceil(maxPrice),
+		totalPrice: totalPrice,
+		maxPrice: maxPrice,
 		maxAmount: maxAmount
 	};
+}
+
+// Calculates the value of the sum of given range of powers of X
+// Can be used to calculate bulk building prices
+OmniCookies.powerSumRange = function(x, start, end) {
+	if(x < 0) return -1;           // please don't
+	if(x == 0) return 0;           // obviously
+	if(x == 1) return end - start; // come on man
+	if(start == end) return x**start; // really, this is getting old
+	
+	let sum1 = (x**(start) - 1)/(x - 1); // sum from 0 to start-1
+	let sum2 = (x**(end+1) - 1)/(x - 1);   // sum from 0 to end
+	return sum2 - sum1; // sum from start to end
+}
+
+// Fast function for calculating the maximum # of a building that can be bought
+OmniCookies.quickCalcMaxBuy = function(building) {
+    let cookies = Game.cookies;
+    cookies /= building.basePrice;
+	let boughtCount = building.amount - building.free;
+	let priceInc = Game.priceIncrease;
+    return Math.floor(Math.log(priceInc**boughtCount + (priceInc - 1)*cookies)/Math.log(priceInc) - building.amount);
+}
+
+// Fast function for calculating the price of # buildings
+OmniCookies.quickCalcBulkPrice = function(building, bulk, sell) {
+	let sum = OmniCookies.powerSumRange(building.amount, bulk-1);
+	sum = Game.modifyBuildingPrice(building, sum*building.basePrice);
+	if(sell) sum *= building.getSellMultiplier();
+	return Math.ceil(sum);
 }
 
 // Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
@@ -238,17 +259,13 @@ OmniCookies.customOptionsMenu = function() {
 	gfxList.appendChild(OmniCookies.makeButton('betterBuildingTooltips',
 		'Improved building tooltips ON', 'Improved building tooltips OFF',
 		'(building tooltips in the shop look a little better; disabling requires refresh)',
-		function() {
-			if(!OmniCookies.patchedBuildingTooltips) OmniCookies.patchBuildingTooltips();
-		}
+		function() { OmniCookies.patchBuildingTooltips(); }
 	));
 
 	gfxList.appendChild(OmniCookies.makeButton('betterGrandmas',
 		'Grandma fixes ON', 'Grandma fixes OFF',
 		'(text and ordering fixes for grandma synergy upgrades; disabling requires refresh)',
-		function() {
-			if(!OmniCookies.patchedGrandmas) OmniCookies.patchGrandmaUpgrades();
-		}
+		function() { OmniCookies.patchGrandmaUpgrades(); }
 	));
 
 	gfxList.appendChild(OmniCookies.makeButton('separateTechs',
@@ -354,7 +371,9 @@ OmniCookies.customOptionsMenu = function() {
 
 	pantheonList.appendChild(OmniCookies.makeButton('trueCyclius',
 		'True Cyclius ON', 'True Cyclius OFF',
-		'(Cyclius shows off his power with style)'
+		'(Cyclius shows off his power with style)',
+		function() { Game.recalculateGains = 1; },
+		function() { Game.recalculateGains = 1; }
 	));
 
 	frag.appendChild(pantheonList);
@@ -549,6 +568,8 @@ OmniCookies.patchBuildings = function() {
 // Patches building tooltips to look a bit better in some cases
 OmniCookies.patchBuildingTooltips = function() {
 	OmniCookies.patchedBuildingTooltips = true;
+	if(OmniCookies.patchedBuildingTooltips) return;
+
 	let tooltipPattern = [
 		{
 			pattern: 'if (synergiesStr!=\'\') synergiesStr+=\', \';',
@@ -659,16 +680,24 @@ OmniCookies.patchBuffTooltips = function() {
 // Fixes the ordering of grandma upgrades in the stats menu
 OmniCookies.patchGrandmaUpgrades = function() {
 	OmniCookies.patchedGrandmas = true;
+	if(OmniCookies.patchedGrandmas) return;
 
+	// Add a line break between the two effects
 	for(let i of Game.GrandmaSynergies) {
 		let upgrade = Game.Upgrades[i];
 		upgrade.desc = upgrade.desc.replace(/(efficient\.) /, '$1<br>');
 	}
 
+	// Fix the appearance order of these upgrades in the stats menu
 	Game.Upgrades["Cosmic grandmas"].order += 0.2;
 	Game.Upgrades["Transmuted grandmas"].order += 0.2;
 	Game.Upgrades["Altered grandmas"].order += 0.2;
 	Game.Upgrades["Grandmas' grandmas"].order += 0.2;
+
+	// Fix the appearance order of buildings in the synergy tooltip list
+	Game.GrandmaSynergies.sort(function(a, b) {
+		return Game.Upgrades[a].order - Game.Upgrades[b].order;
+	});
 }
 
 // Creates a new area for Tech upgrades under the Cookie upgrades

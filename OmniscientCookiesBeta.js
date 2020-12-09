@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.1 BETA 11'
+	version: 'v1.3.1 BETA 12'
 };
 
 OmniCookies.settings = {
@@ -72,7 +72,7 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	
 	totalPrice = OmniCookies.quickCalcBulkPrice(building, amount);
 	maxAmount = Math.min(amount, OmniCookies.quickCalcMaxBuy(building));
-	maxPrice = OmniCookies.quickCalcBulkPrice(building, Math.min(maxAmount, amount));
+	maxPrice = OmniCookies.quickCalcBulkPrice(building, maxAmount);
 
 	return {
 		totalPrice: totalPrice,
@@ -95,6 +95,7 @@ OmniCookies.powerSumRange = function(x, start, end) {
 }
 
 // Fast function for calculating the maximum # of a building that can be bought
+// Thanks to staticvariablejames on the Discord server
 OmniCookies.quickCalcMaxBuy = function(building) {
     let cookies = Game.cookies;
     cookies /= building.basePrice;

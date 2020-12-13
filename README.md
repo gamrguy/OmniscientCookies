@@ -64,7 +64,19 @@ Grandma synergy upgrade fixes (enabled by default)
 --------------------------------------------------
 Places the "for every X grandmas" section on a new line so it doesn't get chopped by text wrapping.  
 Additionally, fixes the order of the appearance of these upgrades in the stats menu.
-Also fixes the order of the buildings in the Grandma building tooltip synergy list.
+Also fixes the order of the buildings in the Grandma building tooltip synergy list.  
+ALSO makes buying Script grannies trigger a redraw, like the other synergies.
+
+Bring grandma to work day (enabled by default)
+----------------------------------------------
+
+![Bring grandma to work day](doc/bringGrandmaToWorkDay.png "Take your grandma to work")
+
+It's getting pretty cramped in the grandma office, isn't it?  
+Give those extra grandmas some breathing room by taking them to work!  
+The amount of visible synergy grandmas is dependent on the value scaling of the correlating synergy bonus.
+
+Script grannies are introverts and stay home. The Matrix isn't suitable for humans anyway.
 
 Separate tech upgrade category (enabled by default)
 ---------------------------------------------------
@@ -73,6 +85,44 @@ Separate tech upgrade category (enabled by default)
 
 Gives technology upgrades from the Research Center their own category in the Stats menu.  
 Find it right under the Cookies category!
+
+Separate seasonal upgrade category (disabled by default)
+--------------------------------------------------------
+
+![Seasonal category](doc/seasonalcategory.png "The Stats menu has a separate category for seasonal upgrades")
+
+Gives seasonal upgrades from Christmas, etc. their own category in the Stats menu.  
+Find it right under the Cookies category, or the Technologies category if that's also enabled!
+
+Display seasonal sources (enabled by default)
+---------------------------------------------
+
+![Seasonal source](doc/seasonalsource.png "Upgrade tooltips show seasonal requirements")
+
+Shows the seasonal requirement of seasonal upgrades in their tooltips.
+
+Fancy milk select (enabled by default)
+--------------------------------------
+
+![Fancy milk select](doc/fancymilk.png "Milk selector reflects current milk")
+
+The icon of the milk selector switch switches with your selected milk.
+
+Tooltip wobble (disabled by default)
+------------------------------------
+Enables the tooltip wobble animation, which is disabled in vanilla.  
+Does it look much good? Not really. Fun to try? Maybe.
+
+Fancy ascend meter (enabled by default)
+---------------------------------------
+
+![Speedy legacy](doc/legaspeed.gif "MAXIMUN VELOCIPY")
+
+Overhauls the ascend meter's filling formula to fill faster, smoother, 
+work properly with negative ascension gains (from **Dangerous stocks**),
+and to provide a tangible sense of speed.
+
+*May* cost performance. *Probably* won't.
 
 Buildings/cursors/wrinklers always fancy/fast/default (default by default)
 --------------------------------------------------------------------------
@@ -134,12 +184,21 @@ Shows the current values of Cyclius' cycles in his tooltip.
 Timezoned Cyclius (disabled by default)
 ---------------------------------------
 Shifts Cyclius' cycles based on your timezone.  
-Time is shifted towards GMT+1, such that the 24h cycle zeroes out at 0:00 and 12:00.
+Time is shifted towards GMT+1, such that the 24h cycle zeroes out at 1:00 and 13:00.  
+Just like what Orteil is seeing!
 
 True Cyclius (disabled by default)
 ----------------------------------
 Cyclius gets to show off his power with style!
 This is a purely cosmetic option.
+
+Grimoire options
+================
+
+Improved magic meter (enabled by default)
+-----------------------------------------
+Slight graphical improvements to the magic meter.  
+Fixes the lack of horizontal scaling and properly occludes overflow.
 
 Experimental options
 ====================
@@ -156,3 +215,12 @@ Normally, the game only saves the overall stats of your wrinklers.
 When you refresh the game, wrinklers are placed in a defined order with cookies evenly split between them.  
 This setting intends to restore all of the wrinkler stats.  
 To prevent wrinkler duplication, this attempts to only apply if the difference between versions is within 0.1%.
+
+Cursed Finger tweaks (experimental; disabled by default)
+--------------------------------------------------------
+A pair of experimental tweaks to Cursed Finger:  
+- Does not snapshot your CpS; is affected by buffs/changes after gaining the buff
+- CpS gained from CF is considered "passive" CpS and is eaten by wrinklers and counted for building production totals
+
+Note that the wrinkler synergy significantly increases the power of Cursed Finger.  
+Don't use this option if you want it to still feel like a debuff.

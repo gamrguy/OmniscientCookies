@@ -1,6 +1,6 @@
 OmniCookies = {
 	name: 'Omniscient Cookies',
-	version: 'v1.3.2'
+	version: 'v1.4.0'
 };
 OmniCookies.settings = {
 	autoScrollbar: true,
@@ -20,7 +20,16 @@ OmniCookies.settings = {
 	zonedCyclius: false,
 	trueCyclius: false,
 	stockValueData: true,
-	dangerousStocks: false
+	dangerousStocks: false,
+	tooltipWobble: false,
+	fancyMilkSelect: true,
+	improveMagicMeter: true,
+	skruuiaRebalance: false,
+	improveAscendMeter: true,
+	displaySeasons: true,
+	separateSeasons: false,
+	bringGrandmaToWork: true,
+	cursedFinger: false
 }
 
 OmniCookies.saveData = {}
@@ -46,6 +55,10 @@ OmniCookies.replaceCode = function(targetFunction, listReplacements, preEvalScri
 	for(let i in listReplacements) {
 		let patt = listReplacements[i].pattern;
 		let repl = listReplacements[i].replacement;
+		if((typeof patt == 'string' && !newCode.includes(patt)) 
+			|| (typeof patt == 'object' && !newCode.match(patt))) {
+			console.log(`[OmniCookies] WARN: Replacement pattern '${patt}' not found`);
+		}
 		newCode = newCode.replace(patt, repl);
 	}
 	eval('var func = '+newCode);
@@ -82,8 +95,13 @@ OmniCookies.calcMaxBuyBulk = function(building, amount) {
 	};
 }
 
-// Calculates the value of the sum of given range of powers of X
-// Can be used to calculate bulk building prices
+/**
+ * 
+ * @param {number} x Base
+ * @param {number} start Starting exponent
+ * @param {number} end Ending exponent
+ * @returns {number} Sum of exponents x^start to x^end, inclusive
+ */
 OmniCookies.powerSumRange = function(x, start, end) {
 	if(x < 0) return -1;           // please don't
 	if(x == 0) return 0;           // obviously
@@ -95,8 +113,12 @@ OmniCookies.powerSumRange = function(x, start, end) {
 	return sum2 - sum1; // sum from start to end
 }
 
-// Fast function for calculating the maximum # of a building that can be bought
-// Thanks to staticvariablejames on the Discord server
+/**
+ * Calculates the maximum number of buildings that can be currently bought in O(1) time.
+ * Thanks to staticvariablejames on the Discord server!
+ * @param {object} building Game.Object to calculate maximum buy count of
+ * @returns {number} Maximum number of this building that can be bought
+ */
 OmniCookies.quickCalcMaxBuy = function(building) {
     let cookies = Game.cookies;
     cookies /= Game.modifyBuildingPrice(building, building.basePrice);
@@ -105,7 +127,14 @@ OmniCookies.quickCalcMaxBuy = function(building) {
     return Math.floor(Math.log(priceInc**boughtCount + (priceInc - 1)*cookies)/Math.log(priceInc) - building.amount);
 }
 
-// Fast function for calculating the price of # buildings
+/**
+ * Calculates the price of buying buildings in O(1) time.
+ * Starts from the current number of buildings.
+ * @param {object} building Game.Object to calculate price of
+ * @param {number} bulk Number of buildings to buy
+ * @param {boolean} sell Whether to apply the selling multiplier
+ * @returns {number} Amount of cookies this many buildings is worth
+ */
 OmniCookies.quickCalcBulkPrice = function(building, bulk, sell) {
 	let buildingCount = Math.max(0, building.amount - building.free);
 	let sum = OmniCookies.powerSumRange(Game.priceIncrease, buildingCount, buildingCount + bulk-1);
@@ -114,10 +143,13 @@ OmniCookies.quickCalcBulkPrice = function(building, bulk, sell) {
 	return Math.ceil(sum);
 }
 
-// Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
-// Interval is how many hours each cycle is.
-// Returned value is in radians, as part of a full rotation.
-// If zonedCyclius is on, offsets the cycle as though it were GMT+1 time.
+/**
+ * Returns the progress of a cycle, starting from Jan 1, 1970, 00:00:00, UTC time.
+ * Interval is how many hours each cycle is.
+ * Returned value is in radians, as part of a full rotation.
+ * If zonedCyclius is on, offsets the cycle as though it were GMT+1 time.
+ * @param {number} interval Length of cycle in hours
+ */
 OmniCookies.cycliusCalc = function(interval) {
 	let cycle = (Date.now()/1000/(60*60*interval));
 	if(OmniCookies.settings.zonedCyclius) {
@@ -127,6 +159,11 @@ OmniCookies.cycliusCalc = function(interval) {
 	return cycle*Math.PI*2;
 }
 
+/**
+ * Loads data from an object into another object.
+ * @param {object} data Data to be loaded from
+ * @param {object} into Object to load data into
+ */
 OmniCookies.loadData = function(data, into) {
 	if(data) {
 		for(key of Object.keys(data)) {
@@ -140,6 +177,60 @@ OmniCookies.loadData = function(data, into) {
 			}
 		}
 	}
+}
+
+/**
+ * Switches the milk selector's icon to the given milk type
+ * @param {number} milkID
+ */
+OmniCookies.switchMilkIcon = function(milkID) {
+	let milkSelect = Game.Upgrades['Milk selector'];
+	if(milkID == 0) milkSelect.icon = Game.Milk.icon;
+	else milkSelect.icon = milkSelect.choicesFunction()[milkID].icon;
+	Game.upgradesToRebuild = 1;
+}
+
+/**
+ * Gets the number of grandmas from this building's synergy upgrade.
+ * @param {object} building 
+ * @returns {number} Number of synergy grandmas
+ */
+OmniCookies.getNumSynergyGrandmas = function(building) {
+	for(let grandma of Game.GrandmaSynergies) {
+		if(Game.Has(grandma)) {
+			let upgrade = Game.Upgrades[grandma];
+			if(upgrade.buildingTie == building) {
+				return Math.floor(Game.Objects['Grandma'].amount / (building.id - 1));
+			}
+		}
+	}
+	return -1;
+}
+
+/**
+ * Instantly applies the given amount of passive CpS.
+ * This includes updating wrinkler bellies and building stats.
+ * Used by the revamped Cursed Finger.
+ * @param {number} seconds 
+ */
+OmniCookies.gainInstantPassiveCpS = function(seconds) {
+	let cookies = Game.cookiesPs * seconds;
+
+	// Suck the cookies
+	for(let wrinkler of Game.wrinklers) {
+		if(wrinkler.phase == 2) {
+			wrinkler.sucked += cookies * Game.cpsSucked;
+			Game.cookiesSucked += cookies * Game.cpsSucked;
+		}
+	}
+	cookies *= 1 - Game.cpsSucked;
+
+	// Update building total cookies baked stats
+	for (let obj of Game.ObjectsById) {
+		obj.totalCookies += obj.storedTotalCps * Game.globalCpsMult * seconds;
+	}
+
+	Game.Earn(cookies);
 }
 
 //#endregion
@@ -271,10 +362,48 @@ OmniCookies.customOptionsMenu = function() {
 		function() { OmniCookies.patchGrandmaUpgrades(); }
 	));
 
+	gfxList.appendChild(OmniCookies.makeButton('bringGrandmaToWork',
+		'Bring grandma to work day ON', 'Bring grandma to work day OFF',
+		'(synergy grandmas make an appearance in their respective building views)'
+	));
+
 	gfxList.appendChild(OmniCookies.makeButton('separateTechs',
 		'Separate techs ON', 'Separate techs OFF',
 		'(gives tech upgrades their own upgrade category under cookies)',
-		function() { OmniCookies.patchTechUpgradeMenu(); }
+		function() { OmniCookies.patchStatsUpgradeDisplay(); }
+	));
+
+	gfxList.appendChild(OmniCookies.makeButton('separateSeasons',
+		'Separate seasons ON', 'Separate seasons OFF',
+		'(gives seasonal upgrades their own upgrade category under cookies)',
+		function() { OmniCookies.patchStatsUpgradeDisplay(); }
+	));
+
+	gfxList.appendChild(OmniCookies.makeButton('displaySeasons', 
+		'Display seasonal sources ON', 'Display seasonal sources OFF',
+		'(shows source season in upgrade tooltips)',
+		function() { OmniCookies.patchSeasonDisplay() }
+	));
+
+	gfxList.appendChild(OmniCookies.makeButton('fancyMilkSelect',
+		'Fancy milk select ON', 'Fancy milk select OFF',
+		'(milk selector icon changes with selected milk)',
+		undefined, function() { 
+			OmniCookies.switchMilkIcon(1);
+			OmniCookies.lastAutoMilk = undefined;
+			OmniCookies.lastMilk = undefined;
+		}
+	));
+
+	gfxList.appendChild(OmniCookies.makeButton('tooltipWobble',
+		'Tooltip wobble ON', 'Tooltip wobble OFF',
+		'(enables the tooltip wobble animation)',
+		undefined, function() { Game.tooltip.tt.className = 'framed'; }
+	));
+
+	gfxList.appendChild(OmniCookies.makeButton('improveAscendMeter', 
+		'Fancy ascend meter ON', 'Fancy ascend meter OFF',
+		'(meter and number total update faster and smoother)'
 	));
 
 	gfxList.appendChild(OmniCookies.makeOptionedButton('buildingsBypassFancy',
@@ -379,7 +508,30 @@ OmniCookies.customOptionsMenu = function() {
 		'(Cyclius shows off his power with style)'
 	));
 
+	pantheonList.appendChild(OmniCookies.makeButton('skruuiaRebalance',
+		'Skruuia Rebalance ON', 'Skruuia Rebalance OFF',
+		'(Skruuia\'s bonus applies to wrinkler suck rate rather than wrinkler pop multiplier)'
+	));
+
 	frag.appendChild(pantheonList);
+
+	//#endregion
+	//==========================//
+
+	frag.appendChild(OmniCookies.makeHeader("Grimoire"))
+
+	//==========================//
+	//#region Grimoire settings
+
+	let grimoireList = document.createElement('div');
+	grimoireList.className = 'listing';
+
+	grimoireList.appendChild(OmniCookies.makeButton('improveMagicMeter',
+		'Improved magic meter ON', 'Improved magic meter OFF',
+		'(slight improvements to the magic meter; disabling requires refresh)'
+	));
+
+	frag.appendChild(grimoireList);
 
 	//#endregion
 	//==========================//
@@ -400,6 +552,12 @@ OmniCookies.customOptionsMenu = function() {
 	expList.appendChild(OmniCookies.makeButton('preserveWrinklers',
 		'Preserve wrinklers ON', 'Preserve wrinklers OFF',
 		'(experimental; attempts to preserve all wrinkler data on game save/load)'
+	));
+
+	expList.appendChild(OmniCookies.makeButton('cursedFinger',
+		'Cursed Finger tweaks ON', 'Cursed Finger tweaks OFF',
+		'(experimental; some mechanical tweaks to CF; disabling requires restart)',
+		function() { OmniCookies.patchCursedFinger() }
 	));
 
 	frag.appendChild(expList);
@@ -461,20 +619,22 @@ OmniCookies.patchBuildings = function() {
 		{   // Do some tracking and determine whether this canvas actually needs to redraw
 			pattern: `if (typeof(bg)=='string') ctx.fillPattern`,
 			replacement: `
-				if(OmniCookies.settings.optimizeBuildings && !this.hasUnloadedImages && !this.forceDraw && !this.lastMouseOn && !this.mouseOn && (this.lastAmount == this.amount)) return;
+				let synergyAmount = OmniCookies.settings.bringGrandmaToWork ? OmniCookies.getNumSynergyGrandmas(this) : -1;
+				if(OmniCookies.settings.optimizeBuildings && !this.hasUnloadedImages && !this.forceDraw && !this.lastMouseOn && !this.mouseOn && (this.lastAmount == this.amount) && (this.name == 'Grandma' ? true : this.lastSynergyAmount == synergyAmount)) return;
 				this.forceDraw = false;
 				this.lastAmount = this.amount;
 				this.lastMouseOn = this.mouseOn;
+				this.lastSynergyAmount = synergyAmount;
 				this.hasUnloadedImages = Game.Loader.assetsLoaded.indexOf(this.art.bg) == -1;
 				$&`
 		},
 		{   // Check for unloaded building pics
 			pattern: 'var sprite=Pic(pic.pic);',
-			replacement: '$&\nthis.hasUnloadedImages |= sprite == Game.Loader.blank;'
+			replacement: '$&\nthis.hasUnloadedImages = this.hasUnloadedImages || sprite == Game.Loader.blank;'
 		},
 		{   // Scroll the background with the scroll offset
 			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
-			replacement: '$&,-Math.floor(this.scrollOffX)'
+			replacement: '$&,-this.scrollOffX'
 		},
 		{   // Modify building image bounds based on scroll offset
 			pattern: 'var maxI=Math.floor(this.canvas.width',
@@ -494,10 +654,10 @@ OmniCookies.patchBuildings = function() {
 				var speed = 20;
 				if(!OmniCookies.settings.smoothBuildings) speed *= 3;
 				if(this.mousePos[0] >= (this.canvas.width) - 100 && maxI <= this.amount + rows * 3) {
-					this.scrollOffX += speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100);
+					this.scrollOffX += Math.floor(speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100));
 				}
 				if(this.mousePos[0] <= 100 && this.scrollOffX > 0) {
-					this.scrollOffX -= speed * (1 - this.mousePos[0] / 100);
+					this.scrollOffX -= Math.floor(speed * (1 - this.mousePos[0] / 100));
 				}
 				if(this.scrollOffX < 0 || !OmniCookies.settings.scrollingBuildings) this.scrollOffX = 0;
 				$&`
@@ -510,6 +670,29 @@ OmniCookies.patchBuildings = function() {
 					this.lastRandY = Math.random()*4;
 				}
 				ctx.drawImage(sprite,Math.floor(pic.x+this.lastRandX-2),Math.floor(pic.y+this.lastRandY-2));`
+		},
+		{   // Bring Grandma To Work Day
+			pattern: 'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
+			replacement: `$&
+				if(OmniCookies.settings.bringGrandmaToWork && this.drawGrandmas && synergyAmount > -1 ) {
+					let grandmas = this.drawGrandmas(this, x, y, i, synergyAmount);
+					this.pics = this.pics.concat(grandmas);
+				}
+			`
+		},
+		{   // Enable grandma hovering on supported buildings
+			pattern: `if (this.name=='Grandma')`,
+			replacement: `if (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && this.drawGrandmas))`
+		},
+		{   // Count hovered grandmas as grandmas
+			pattern: `if (selected==i && this.name=='Grandma')`,
+			replacement: `if (selected==i && (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && pic.grandma)))`
+		},
+		{   // Don't let non-grandma things occlude hover detection
+			pattern: `if (this.mousePos[0]>=pic.x-marginW && this.m`,
+			replacement: `
+				if(this.name == 'Grandma' ? false : !pic.grandma) continue;
+			$&`
 		}
 	];
 	let mutePattern = [
@@ -538,6 +721,7 @@ OmniCookies.patchBuildings = function() {
 			building.lastOffX = 0;
 			building.lastMouseOn = building.mouseOn;
 			building.lastAmount = building.amount;
+			building.lastSynergyAmount = 0;
 			building.hasUnloadedImages = true;
 			building.forceDraw = true;
 		
@@ -559,6 +743,7 @@ OmniCookies.patchBuildings = function() {
 				this.lastOffX = 0;
 				this.lastMouseOn = this.mouseOn;
 				this.lastAmount = this.amount;
+				this.lastSynergyAmount = 0;
 				this.hasUnloadedImages = true;
 				this.forceDraw = true;
 			$&`
@@ -566,6 +751,251 @@ OmniCookies.patchBuildings = function() {
 	]);
 	Game.Object = OmniCookies.replaceCode(Game.Object, mutePattern);
 	Game.Object = OmniCookies.replaceCode(Game.Object, redrawPattern);
+
+	// Bring Your Grandma to Work Day
+	Game.Objects['Grandma'].art.pic = OmniCookies.replaceCode(Game.Objects['Grandma'].art.pic, [
+		{   // Keep abnormal grandmas off the lawn during BYGTWD
+			pattern: `if (Game.Has('Far`,
+			replacement: `if(!OmniCookies.settings.bringGrandmaToWork) {
+			$&`
+		},
+		{   // After all, they have somewhere better to be!
+			pattern: `metaGrandma');`,
+			replacement: `$&
+			}`
+		},
+		{   // Script grannies and seasonal grannies get to stay home
+			pattern: `if (Game.Has('Alternate grandmas')) list.push('alternateGrandma');`,
+			replacement: `if(!OmniCookies.settings.bringGrandmaToWork) $&`
+		}
+	]);
+	Game.Objects['Farm'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*40),
+				y: y + Math.floor((Math.random()-0.5)*10)+5,
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'farmerGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Mine'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*25)+10,
+				y: y + Math.floor((Math.random()-0.4)*5)+2,
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'minerGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Factory'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*50),
+				y: y,
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'workerGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Bank'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*40),
+				y: y + Math.floor((Math.random()-0.5)*4),
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'bankGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Temple'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*25),
+				y: y + Math.floor((Math.random()-0.5)*4),
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'templeGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Wizard tower'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i%3==0 && Math.floor(i/3) < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*35)+20,
+				y: Math.floor((Math.random()-0.5)*12)+60,
+				z: y+50,
+				id: i + 0.1,
+				pic: 'witchGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Shipment'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.2)*60),
+				y: y + Math.floor((Math.random())*30),
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'cosmicGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Alchemy lab'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*45),
+				y: y + Math.floor((Math.random()-0.5)*4),
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'transmutedGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Portal'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*55),
+				y: Math.floor((Math.random())*70),
+				z: 999+i,
+				id: i + 0.1,
+				pic: 'alteredGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Time machine'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			// Load the front of the time machine, to overlay the grandma's grandma
+			let spriteName = 'https://gamrguy.github.io/OmniscientCookies/img/timemachine_front.png';
+			if(!Game.Loader.assetsLoading[spriteName] && !Game.Loader.assetsLoaded[spriteName]) {
+				Game.Loader.assets[spriteName] = {};
+				Game.Loader.Replace(spriteName, spriteName);
+				Game.Loader.assetsLoading.push(spriteName);
+			}
+			return [
+				{
+					x: x - 5,
+					y: y-2,
+					z: 999+i,
+					id: i + 0.1,
+					pic: 'grandmasGrandma.png',
+					frame: -1,
+					grandma: true
+				},
+				{
+					x: x,
+					y: y,
+					z: 1000+i,
+					id: i + 0.2,
+					pic: spriteName,
+					frame: -1
+				}
+			]
+		}
+		return [];
+	}
+	Game.Objects['Antimatter condenser'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+					x: x,
+					y: y-6,
+					z: 999+i,
+					id: i + 0.1,
+					pic: 'antiGrandma.png',
+					frame: -1,
+					grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Prism'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*45),
+				y: y + Math.floor((Math.random()-0.5)*8)+8,
+				z: y+0.1,
+				id: i + 0.1,
+				pic: 'rainbowGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Chancemaker'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i%2==0 && Math.floor(i/2) < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*50),
+				y: 70,
+				z: 777+i,
+				id: i + 0.1,
+				pic: 'luckyGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Fractal engine'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*55),
+				y: Math.floor((Math.random())*70),
+				z: 999+i,
+				id: i + 0.1,
+				pic: 'metaGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
+	Game.Objects['Idleverse'].drawGrandmas = function(me, x, y, i, synergyNum) {
+		if(i%3==0 && Math.floor(i/3) < synergyNum) {
+			return [{
+				x: x + Math.floor((Math.random()-0.5)*15),
+				y: y + Math.floor((Math.random()-0.5)*15) - 25,
+				z: y + 1,
+				id: i + 0.1,
+				pic: 'alternateGrandma.png',
+				frame: -1,
+				grandma: true
+			}]
+		}
+		return [];
+	}
 }
 
 // Patches building tooltips to look a bit better in some cases
@@ -669,9 +1099,13 @@ OmniCookies.patchBuffTooltips = function() {
 		let minigame = Game.Objects['Wizard tower'].minigame;
 		if(minigame) {
 			minigame.spells['stretch time'].win = OmniCookies.replaceCode(minigame.spells['stretch time'].win, [
-				{
+				{   // Update all instances of the previous maximum time
+					// This means it'll catch Cursed Finger
 					pattern: 'me.maxTime+=gain;',
-					replacement: 'me.desc = me.desc.replace(Game.sayTime(me.maxTime,-1), Game.sayTime(me.maxTime + gain,-1));$&'
+					replacement: `
+					let timePattern = RegExp(Game.sayTime(me.maxTime,-1), 'g');
+					me.desc = me.desc.replace(timePattern, Game.sayTime(me.maxTime + gain,-1));
+					$&`
 				}
 			]);
 			clearInterval(patchGrimoire);
@@ -679,8 +1113,11 @@ OmniCookies.patchBuffTooltips = function() {
 	}, 250);
 }
 
-// Adds a line break to grandma synergy upgrades
-// Fixes the ordering of grandma upgrades in the stats menu
+/** 
+ * Adds a line break to grandma synergy upgrades
+ * Fixes the ordering of grandma upgrades in the stats menu
+ * Makes Script grannies trigger a redraw when bought
+ */
 OmniCookies.patchGrandmaUpgrades = function() {
 	if(OmniCookies.patchedGrandmas) return;
 	OmniCookies.patchedGrandmas = true;
@@ -689,6 +1126,7 @@ OmniCookies.patchGrandmaUpgrades = function() {
 	for(let i of Game.GrandmaSynergies) {
 		let upgrade = Game.Upgrades[i];
 		upgrade.desc = upgrade.desc.replace(/(efficient\.) /, '$1<br>');
+		upgrade.baseDesc = upgrade.desc;
 	}
 
 	// Fix the appearance order of these upgrades in the stats menu
@@ -701,33 +1139,110 @@ OmniCookies.patchGrandmaUpgrades = function() {
 	Game.GrandmaSynergies.sort(function(a, b) {
 		return Game.Upgrades[a].order - Game.Upgrades[b].order;
 	});
+
+	// Script grannies trigger a redraw
+	let scriptGrannies = Game.Upgrades['Script grannies'];
+	if(!scriptGrannies.buyFunction) {
+		scriptGrannies.buyFunction = function() {
+			Game.Objects['Grandma'].redraw();
+		}
+	} else {
+		scriptGrannies.buyFunction = OmniCookies.replaceCode(scriptGrannies.buyFunction, [
+			{   // CCSE injects a buy function into every upgrade for mod hooks
+				pattern: '{',
+				replacement: `$&\nGame.Objects['Grandma'].redraw();`
+			}
+		]);
+	}
 }
 
-// Creates a new area for Tech upgrades under the Cookie upgrades
-OmniCookies.patchTechUpgradeMenu = function() {
+/** 
+ * Adds support for Tech and Seasonal upgrade categories
+*/
+OmniCookies.patchStatsUpgradeDisplay = function() {
 	if(OmniCookies.patchedTechUpgrades) return;
 	OmniCookies.patchedTechUpgrades = true;
 
 	Game.UpdateMenu = OmniCookies.replaceCode(Game.UpdateMenu, [
 		{   // Declare techUpgrades var
 			pattern: 'var cookieUpgrades=\'\';',
-			replacement: '$&\nvar techUpgrades = \'\''
+			replacement: `$&
+				var techUpgrades = '';
+				var seasonalUpgrades = '';
+			`
 		},
-		{   // Redirect tech upgrades to the new accumulator string
-			pattern: 'else if (me.pool!=\'toggle\'',
-			replacement: 'else if (OmniCookies.settings.separateTechs && me.pool == \'tech\') techUpgrades+=str2;\n$&'
+		{   // Redirect tech/seasonal upgrades to the new accumulator string
+			pattern: 'else if (me.pool==\'cookie\'',
+			replacement: `else if (OmniCookies.settings.separateTechs && me.pool == \'tech\') techUpgrades+=str2;
+				else if(OmniCookies.settings.separateSeasons && me.unlockAt && (me.unlockAt.season || me.unlockAt.displaySeason)) seasonalUpgrades+=str2;
+			$&`
 		},
 		{   // Display the new category
-			pattern: 'cookieUpgrades+\'</div>\'):\'\')+',
+			pattern: `cookieUpgrades+'</div>'):'')+`,
 			replacement: `$&
 				(techUpgrades!=''?('<div class="listing"><b>Technologies</b></div>'+
 				'<div class="listing crateBox">'+techUpgrades+'</div>'):'')+
+				(seasonalUpgrades!=''?('<div class="listing"><b>Seasonal</b></div>'+
+				'<div class="listing crateBox">'+seasonalUpgrades+'</div>'):'')+
 			`
 		}
 	]);
 }
 
-// Allows buildings to bypass the Fancy graphics setting
+/**
+ * Enables displaying seasonal unlock sources
+ */
+OmniCookies.patchSeasonDisplay = function() {
+	if(OmniCookies.patchedSeasonDisplay) return;
+	OmniCookies.patchedSeasonDisplay = true;
+
+	OmniCookies.allSanta = Game.santaDrops.slice(0, Game.santaDrops.length);
+	OmniCookies.allSanta.push('A festive hat');
+	OmniCookies.allSanta.push('Santa\'s dominion');
+
+	Game.crateTooltip = OmniCookies.replaceCode(Game.crateTooltip, [
+		{	// Uncomments unlockAt.season
+			pattern: /(\/\*|\*\/)/g,
+			replacement: ''
+		},
+		{
+			pattern: `else if (me.unlockAt.season)`,
+			replacement: `else if (OmniCookies.settings.displaySeasons && me.unlockAt.season)`
+		},
+		{   // Implements a cosmetic season unlockAt
+			pattern: 'else if (me.unlockAt.text)',
+			replacement: `
+				else if (OmniCookies.settings.displaySeasons && me.unlockAt.displaySeason)
+				{
+					var it=Game.seasons[me.unlockAt.displaySeason];
+					desc='<div style="font-size:80%;text-align:center;">From <div class="icon" style="vertical-align:middle;display:inline-block;'+(Game.Upgrades[it.trigger].icon[2]?'background-image:url('+Game.Upgrades[it.trigger].icon[2]+');':'')+'background-position:'+(-Game.Upgrades[it.trigger].icon[0]*48)+'px '+(-Game.Upgrades[it.trigger].icon[1]*48)+'px;transform:scale(0.5);margin:-16px;"></div> '+it.name+'</div><div class="line"></div>'+desc;
+				}
+			$&`
+		}
+	]);
+
+	function addCosmeticSeason(upgrade, season) {
+		if(typeof upgrade == 'string') upgrade = Game.Upgrades[upgrade];
+		if(!upgrade.unlockAt) upgrade.unlockAt = {cookies:0,name:upgrade.name};
+		upgrade.unlockAt.displaySeason = season;
+	}
+	for(let name of Game.reindeerDrops) {
+		addCosmeticSeason(name, 'christmas');
+	}
+	for(let name of OmniCookies.allSanta) {
+		addCosmeticSeason(name, 'christmas');
+	}
+	for(let name of Game.halloweenDrops) {
+		addCosmeticSeason(name, 'halloween');
+	}
+	for(let name of Game.easterEggs) {
+		addCosmeticSeason(name, 'easter');
+	}
+}
+
+/**
+ * Allows buildings to bypass the Fancy graphics setting
+ */
 OmniCookies.patchFancyBuildings = function() {
 	Game.Draw = OmniCookies.replaceCode(Game.Draw, [
 		{
@@ -737,7 +1252,9 @@ OmniCookies.patchFancyBuildings = function() {
 	]);
 }
 
-// Allows cursors to bypass the Fancy graphics setting
+/**
+ * Allows cursors to bypass the Fancy graphics setting
+ */
 OmniCookies.patchFancyCursors = function() {
 	Game.DrawBackground = OmniCookies.replaceCode(Game.DrawBackground, [
 		{
@@ -747,7 +1264,9 @@ OmniCookies.patchFancyCursors = function() {
 	]);
 }
 
-// Allows wrinklers to bypass the Fancy graphics setting
+/**
+ * Allows wrinklers to bypass the Fancy graphics setting
+ */
 OmniCookies.patchFancyWrinklers = function() {
 	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
 		{
@@ -769,9 +1288,11 @@ OmniCookies.patchFancyWrinklers = function() {
 		}`);
 }
 
-// Properly displays the (seemingly intended) feature of partial buying in bulk.
-// Also makes the ALL button worth ALL, not 1000
-// Also allows using the ALL button in buy mode.
+/** 
+ * Properly displays the (seemingly intended) feature of partial buying in bulk.
+ * Also makes the ALL button worth ALL, not 1000
+ * Also allows using the ALL button in buy mode.
+ */
 OmniCookies.patchBuySellBulk = function() {
 	let rebuildPattern = [
 		{
@@ -825,14 +1346,22 @@ OmniCookies.patchBuySellBulk = function() {
 	Game.storeBulkButton = OmniCookies.replaceCode(Game.storeBulkButton, [
 		{   // Allow using max button in buy mode
 			pattern: `if (Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`,
-			replacement: `if (!OmniCookies.settings.enhancedBulk && Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`
+			replacement: `
+				if(id == 0 || id == 1) {
+					let text = 'all';
+					if(OmniCookies.settings.enhancedBulk) {
+						if(Game.buyMode == -1) text = 'ALL';
+						else text = 'MAX';
+					}
+					l('storeBulkMax').textContent = text;
+				}
+				if (!OmniCookies.settings.enhancedBulk && Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`
 		},
 		{   // Max button is always visible
 			pattern: `l('storeBulkMax').style.visibility='hidden';`,
 			replacement: `if(!OmniCookies.settings.enhancedBulk) $&`
 		}
 	]);
-	
 	
 	OmniCookies.updateBulkAll();
 }
@@ -899,7 +1428,12 @@ OmniCookies.updateBulkAll = function() {
 		if(Game.buyBulk == -1 && !OmniCookies.settings.enhancedBulk) Game.storeBulkButton(4);
 		l('storeBulkMax').style.visibility = OmniCookies.settings.enhancedBulk ? 'visible' : 'hidden';
 	}
-	l('storeBulkMax').textContent = OmniCookies.settings.enhancedBulk ? 'ALL' : 'all';
+	let text = 'all';
+	if(OmniCookies.settings.enhancedBulk) {
+		if(Game.buyMode == -1) text = 'ALL';
+		else text = 'MAX';
+	}
+	l('storeBulkMax').textContent = text;
 	Game.RefreshStore();
 }
 
@@ -972,6 +1506,13 @@ OmniCookies.patchStockInfo = function() {
 					$&`
 				}
 			], `var M = Game.Objects['Bank'].minigame;`);
+			/*stockMarket.goodTooltip = OmniCookies.replaceCode(stockMarket.goodTooltip, [
+				{   // Shows the current total bought value on the tooltip
+					// Disabled for now due to ugly text wrapping
+					pattern: /me\.name\+' \(worth <b>\$'\+Beautify\(val\*me\.stock,2\)\+'<\/b>/,
+					replacement: `$&, bought for <b>$$'+Beautify(OmniCookies.saveData.stockAverages[id] ? OmniCookies.saveData.stockAverages[id].totalValue : 0, 2)+'</b>`
+				}
+			]), `var M = Game.Objects['Bank'].minigame;`;*/
 			stockMarket.drawGraph = OmniCookies.replaceCode(stockMarket.drawGraph, [
 				{   // Draw line for profit threshold
 					pattern: /}$/,
@@ -1036,21 +1577,52 @@ OmniCookies.patchStockInfo = function() {
 // Restores wrinklers to their original positions and values
 // Checks against current wrinklers to prevent wrinkler duplication
 // Why doesn't the vanilla game do this...?
+/**
+ * Saves wrinklers to saveData if preserveWrinklers is on
+ */
 OmniCookies.cryosleepWrinklers = function() {
 	OmniCookies.settings.preserveWrinklers ? OmniCookies.saveData.frozenWrinks = Game.wrinklers : null;
 }
+
+/**
+ * Attempts to restore wrinklers from cryosleep
+ * Does not restore wrinklers if total sucked cookies > 0.1% difference
+ */
 OmniCookies.thawWrinklers = function() {
 	if(OmniCookies.settings.preserveWrinklers && OmniCookies.saveData.frozenWrinks) {
 		let realWrinks = Game.wrinklers;
 		let currentWrinks = Game.SaveWrinklers();
 		Game.wrinklers = OmniCookies.saveData.frozenWrinks;
 		let thawedWrinks = Game.SaveWrinklers();
-		for(var attr in currentWrinks) {
-			let ratio = Math.min(currentWrinks[attr]/thawedWrinks[attr], thawedWrinks[attr]/currentWrinks[attr]);
-			if(currentWrinks[attr] != thawedWrinks[attr] && ratio < 0.999) {
-				Game.wrinklers = realWrinks;
-				return;
+
+		// If our number of wrinklers has changed, don't run
+		if(currentWrinks.number != thawedWrinks.number || currentWrinks.shinies != thawedWrinks.shinies)
+			return;
+		
+		// Update thawed wrinkler values for how long the game was running
+		for(let wrinkler of Game.wrinklers) {
+			if(wrinkler.phase == 2) {
+				wrinkler.sucked += (Game.cookiesPs/Game.fps)*Game.cpsSucked*Game.loopT;
 			}
+		}
+
+		thawedWrinks = Game.SaveWrinklers();
+
+		let normalRatio = (currentWrinks.amount == 0 || thawedWrinks.amount == 0)
+			? (currentWrinks.amount == thawedWrinks.amount ? 1 : 0)
+			: Math.min(currentWrinks.amount/thawedWrinks.amount, thawedWrinks.amount/currentWrinks.amount);
+		let shinyRatio = (currentWrinks.amountShinies == 0 || thawedWrinks.amountShinies == 0) 
+			? (currentWrinks.amountShinies == thawedWrinks.amountShinies ? 1 : 0)
+			: Math.min(currentWrinks.amountShinies/thawedWrinks.amountShinies, thawedWrinks.amountShinies/currentWrinks.amountShinies)
+		//console.log(Game.T+' '+Game.loopT);
+		//console.log(currentWrinks.amount + ' ' + thawedWrinks.amount);
+		//console.log(normalRatio + ' ' + shinyRatio);
+
+		// Allow wrinkler loading if values are within 1% of expected
+		let threshold = 0.99;
+		if(normalRatio < threshold || shinyRatio < threshold) {
+			Game.wrinklers = realWrinks;
+			return;
 		}
 	}
 }
@@ -1109,6 +1681,250 @@ OmniCookies.patchCycliusGains = function() {
 	]);
 }
 
+/**
+ * Enable tooltip wobbling
+ */
+OmniCookies.patchTooltipWobble = function() {
+	Game.tooltip.wobble = OmniCookies.replaceCode(Game.tooltip.wobble, [
+		{
+			pattern: `if (false)`,
+			replacement: `if (OmniCookies.settings.tooltipWobble)`
+		}
+	]);
+}
+
+/**
+ * Allows disabling the Skruuia wrinkler popping bonus
+ */
+OmniCookies.patchSkruuiaRebalance = function() {
+	Game.UpdateWrinklers = OmniCookies.replaceCode(Game.UpdateWrinklers, [
+		{
+			pattern: /(var godLvl=)(Game\.hasGod\('scorn'\))(;\s*if \(godLvl==1\) me\.sucked\*=1\.15;)/m,
+			replacement: `$1OmniCookies.settings.skruuiaRebalance ? 0 : $2$3`
+		}
+	]);
+}
+
+/**
+ * If enabled, Skruuia modifies wrinkler cookie consumption.
+ * This increases the amount of cookies that get multiplied by the wrinklers.
+ * Mathematically it's the same, but needs Skruuia to stay slotted in.
+ */
+OmniCookies.updateSkruuiaRebalance = function() {
+	let godEff = 1;
+	if(OmniCookies.settings.skruuiaRebalance && Game.hasGod) {
+		let godLvl = Game.hasGod('scorn');
+		switch(godLvl) {
+			case 1: godEff = 1.15; break;
+			case 2: godEff = 1.10; break;
+			case 3: godEff = 1.05; break;
+		}
+	}
+
+	let pantheon = Game.Objects['Temple'].minigame;
+	if(pantheon) {
+		if(typeof pantheon.effs == 'undefined') pantheon.effs = {};
+		if(godEff != pantheon.effs['wrinklerEat']) Game.recalculateGains = 1;
+		pantheon.effs['wrinklerEat'] = godEff;
+	}
+}
+
+/**
+ * Update icon of milk selector when switching milk types
+ */
+OmniCookies.updateMilkIcon = function() {
+	if(OmniCookies.lastMilk == undefined) OmniCookies.lastMilk = -1;
+	if(OmniCookies.settings.fancyMilkSelect) {
+		if(Game.milkType == 0 && Game.Milk != OmniCookies.lastAutoMilk) {
+			OmniCookies.switchMilkIcon(0);
+			OmniCookies.lastAutoMilk = Game.Milk;
+		} else if(Game.milkType != OmniCookies.lastMilk) {
+			OmniCookies.switchMilkIcon(Game.milkType);
+			OmniCookies.lastMilk = Game.milkType;
+		}
+	}
+}
+
+/**
+ * Fixes the graphics on the grimoire magic meter  
+ * Seriously vanilla, this wasn't hard!!!
+ */
+OmniCookies.grimoireMeterFix = function() {
+	if(!OmniCookies.settings.improveMagicMeter && !OmniCookies.patchedMagicMeter) return;
+	OmniCookies.patchedMagicMeter = true;
+
+	let magicBar = document.getElementById('grimoireBar');
+	if(magicBar) {
+		let magicMeter = document.getElementById('grimoireBarFull');
+
+		if(magicBar.className.includes('meterContainer')) {
+			// Apply horizontal scaling as well as vertical scaling
+			magicMeter.style.height = '8px';
+			magicMeter.style.transform = 'scale(2,2)';
+			magicMeter.style.transformOrigin = '0 0';
+			
+			// Set up a new container element that can hide the overflow
+			let div = document.createElement('div');
+			div.className = magicBar.className;
+			div.style.overflow = 'hidden';
+			div.style.height = '100%';
+
+			magicBar.className = '';
+			magicBar.style.position = 'relative';
+			magicBar.replaceChild(div, magicMeter);
+			div.appendChild(magicMeter);
+		}
+		
+		// Since we're using double width sprites now, better halve the real width
+		magicMeter.style.width = Number.parseFloat(magicMeter.style.width)/2 + '%';
+	}
+}
+
+/**
+ * Very fancy ascend meter
+ * Basically has to recalculate everything. Thanks game.
+ * At least there's no loops involved so it's not too slow.
+ */
+OmniCookies.improveAscendMeter = function() {
+	if(OmniCookies.settings.improveAscendMeter) {
+		// Recalculate everything. Thanks game...
+		let chipsOwned=Game.HowMuchPrestige(Game.cookiesReset);
+		let ascendNowToOwn=Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
+		let ascendNowToGet=ascendNowToOwn-Math.floor(chipsOwned);
+
+		// Spiced cookies
+		if(typeof Spice != 'undefined' && Spice.settings.numericallyStableHeavenlyChipGains) {
+			if(Spice.additionalHeavenlyChips) {
+				// Stable branch
+				ascendNowToGet = Spice.additionalHeavenlyChips();
+			} else if(Spice.stableHeavenlyChipGains) {
+				// Dev branch
+				ascendNowToGet = Spice.stableHeavenlyChipGains();
+			}
+		}
+
+		var nextChipAt=Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet+1))-Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet));
+		var cookiesToNext=Game.HowManyCookiesReset(ascendNowToOwn+1)-(Game.cookiesEarned+Game.cookiesReset);
+		var percent=1-(cookiesToNext/nextChipAt);
+		
+		if(!OmniCookies.levelDiff) OmniCookies.levelDiff = 0;
+		if(!OmniCookies.ascendMeterPercent) OmniCookies.ascendMeterPercent = percent;
+		if(!OmniCookies.ascendMeterLevel) OmniCookies.ascendMeterLevel = ascendNowToGet;
+		if(ascendNowToGet != OmniCookies.ascendMeterLevel) {
+			OmniCookies.levelDiff += ascendNowToGet - OmniCookies.ascendMeterLevel;
+			OmniCookies.ascendMeterLevel = ascendNowToGet;
+		}
+
+		Game.ascendMeterPercent = OmniCookies.ascendMeterPercent;
+
+		// Adjust by 10% of the level difference each tick
+		let velocity = (OmniCookies.levelDiff + percent - Game.ascendMeterPercent) * 0.1;
+		Game.ascendMeterPercent += velocity;
+
+		// Stay at maximum or minimum when going more than a whole bar in a single frame
+		let superspeed = false;
+		let superspeedRev = false;
+		if(Game.ascendMeterPercent >= 2) superspeed = true;
+		if(Game.ascendMeterPercent <= -1) superspeedRev = true; 
+
+		// Update level difference and fix negative meter values
+		if(Game.ascendMeterPercent >= 1) OmniCookies.levelDiff -= Math.floor(Game.ascendMeterPercent);
+		if(Game.ascendMeterPercent < 0) OmniCookies.levelDiff -= Math.floor(Game.ascendMeterPercent);
+		if(Game.ascendMeterPercent < 0) Game.ascendMeterPercent = (1 - Math.abs(Game.ascendMeterPercent));
+		
+		Game.ascendMeterPercent %= 1;
+		Game.ascendMeter.style.transform = '';
+
+		let perc = Game.ascendMeterPercent * 100;
+		perc = superspeed ? 100 : perc;
+		perc = superspeedRev ? 0 : perc;
+
+		Game.ascendMeter.style.width = (perc+'%');
+		Game.ascendNumber.textContent='+'+SimpleBeautify(ascendNowToGet);
+
+		OmniCookies.ascendMeterPercent = Game.ascendMeterPercent;
+	} else {
+		Game.ascendMeter.style.removeProperty('width');
+	}
+}
+
+/**
+ * Reworks Cursed Finger a bit
+ * - Removes the "snapshotting" behavior
+ * - Gain seconds of true passive CpS
+ */
+OmniCookies.patchCursedFinger = function() {
+	if(OmniCookies.patchedCursedFinger) return;
+	OmniCookies.patchedCursedFinger = true;
+
+	OmniCookies.cursedPs = Game.cookiesPs;
+	OmniCookies.cursedPsMult = Game.globalCpsMult;
+
+	let cursedFinger = Game.buffTypesByName['cursed finger'];
+	cursedFinger.func = OmniCookies.replaceCode(cursedFinger.func, [
+		{   // Remove multiply by 0 - don't worry, just moving it
+			pattern: `multCpS:0,`,
+			replacement: `multCpS:1,`
+		},
+		{   // Small description edit
+			pattern: `<br>but each click is worth `,
+			replacement: `<br>but each click generates `
+		}
+	]);
+
+	Game.CalculateGains = OmniCookies.replaceCode(Game.CalculateGains, [
+		{   // See? Told you.
+			pattern: `Game.computedMouseCps=Game.mouseCps();`,
+			replacement: `$&
+				if(Game.hasBuff('Cursed finger')) {
+					OmniCookies.cursedPs = Game.cookiesPs;
+					OmniCookies.cursedPsMult = Game.globalCpsMult;
+					Game.globalCpsMult = 0;
+					Game.cookiesPs = 0;
+					Game.computedMouseCps = 0;
+				}
+			`
+		}
+	]);
+
+	// Inject into and then replace the cookie click event
+	let bigCookie = document.getElementById('bigCookie');
+	bigCookie.removeEventListener('click', Game.ClickCookie);
+	Game.ClickCookie = OmniCookies.replaceCode(Game.ClickCookie, [
+		{   // Replace click gains with cursed gains
+			pattern: `Game.handmadeCookies+=amount;`,
+			replacement: `$&
+				if(Game.hasBuff('Cursed finger')) {
+					Game.Dissolve(amount);
+					Game.handmadeCookies-=amount;
+					amount = OmniCookies.cursedPs * Game.buffs['Cursed finger'].maxTime;
+					Game.cookiesPs = OmniCookies.cursedPs;
+					Game.globalCpsMult = OmniCookies.cursedPsMult;
+					OmniCookies.gainInstantPassiveCpS(Game.buffs['Cursed finger'].maxTime/Game.fps);
+					Game.cookiesPs = 0;
+					Game.globalCpsMult = 0;
+				}`
+		}
+	]);
+	AddEvent(bigCookie, 'click', Game.ClickCookie);
+
+	// Fix pre-existing cursed finger
+	if(Game.hasBuff('Cursed finger')) {
+		Game.buffs['Cursed finger'].multCpS = 1;
+		Game.recalculateGains = 1;
+	}
+}
+
+/**
+ * Sets the scroll of all buildings to 0.
+ * Performed on reincarnation.
+ */
+OmniCookies.resetScroll = function() {
+	for(let name in Game.Objects) {
+		if(Game.Objects[name].scrollOffX) Game.Objects[name].scrollOffX = 0;
+	}
+}
+
 //#endregion
 //==============================//
 
@@ -1127,20 +1943,30 @@ OmniCookies.init = function() {
 	OmniCookies.patchDangerousStocks();
 	OmniCookies.patchPantheonInfo();
 	OmniCookies.patchCycliusGains();
+	OmniCookies.patchTooltipWobble();
 
 	Game.registerHook('logic', function() {
 		// On enhanced bulk setting, regularly refresh the store to account for changes in cookies
-		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.RefreshStore();
+		if(OmniCookies.settings.enhancedBulk && Game.T%10==0) Game.storeToRefresh = 1;
+
+		OmniCookies.updateSkruuiaRebalance();
+		OmniCookies.improveAscendMeter();
 	});
 
 	Game.registerHook('draw', function() {
 		// Update Cyclius' display of raw power
 		OmniCookies.trueCyclius();
+
+		OmniCookies.updateMilkIcon();
+		OmniCookies.grimoireMeterFix();
 	});
 
 	Game.registerHook('reset', function(hard) {
 		// Reset stock average data and frozen wrinklers when resetting
 		OmniCookies.defaultSave();
+
+		// Reset building scroll values
+		OmniCookies.resetScroll();
 	});
 
 	Game.Notify(`Loaded ${OmniCookies.name} ${OmniCookies.version}`,'',0,3);
@@ -1165,9 +1991,12 @@ OmniCookies.load = function(str) {
 	OmniCookies.thawWrinklers();
 
 	OmniCookies.settings.autoScrollbar ? OmniCookies.autoScrollbar() : OmniCookies.showScrollbar();
-	OmniCookies.settings.betterBuildingTooltips ? OmniCookies.patchBuildingTooltips() : null;
-	OmniCookies.settings.betterGrandmas ? OmniCookies.patchGrandmaUpgrades() : null;
-	OmniCookies.settings.separateTechs ? OmniCookies.patchTechUpgradeMenu() : null;
+	if(OmniCookies.settings.betterBuildingTooltips) OmniCookies.patchBuildingTooltips();
+	if(OmniCookies.settings.betterGrandmas) OmniCookies.patchGrandmaUpgrades();
+	if(OmniCookies.settings.cursedFinger) OmniCookies.patchCursedFinger();
+	if(OmniCookies.settings.displaySeasons) OmniCookies.patchSeasonDisplay();
+	if(OmniCookies.settings.separateTechs || OmniCookies.settings.separateSeasons) 
+		OmniCookies.patchStatsUpgradeDisplay();
 }
 
 //#endregion

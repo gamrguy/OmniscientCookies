@@ -88,15 +88,24 @@ Find it right under the Cookies category!
 
 Separate seasonal upgrade category (disabled by default)
 --------------------------------------------------------
+
+![Seasonal category](doc/seasonalcategory.png "The Stats menu has a separate category for seasonal upgrades")
+
 Gives seasonal upgrades from Christmas, etc. their own category in the Stats menu.  
 Find it right under the Cookies category, or the Technologies category if that's also enabled!
 
 Display seasonal sources (enabled by default)
 ---------------------------------------------
+
+![Seasonal source](doc/seasonalsource.png "Upgrade tooltips show seasonal requirements")
+
 Shows the seasonal requirement of seasonal upgrades in their tooltips.
 
 Fancy milk select (enabled by default)
 --------------------------------------
+
+![Fancy milk select](doc/fancymilk.png "Milk selector reflects current milk")
+
 The icon of the milk selector switch switches with your selected milk.
 
 Tooltip wobble (disabled by default)

@@ -1791,6 +1791,18 @@ OmniCookies.improveAscendMeter = function() {
 		let chipsOwned=Game.HowMuchPrestige(Game.cookiesReset);
 		let ascendNowToOwn=Math.floor(Game.HowMuchPrestige(Game.cookiesReset+Game.cookiesEarned));
 		let ascendNowToGet=ascendNowToOwn-Math.floor(chipsOwned);
+
+		// Spiced cookies
+		if(typeof Spice != 'undefined' && Spice.settings.numericallyStableHeavenlyChipGains) {
+			if(Spice.additionalHeavenlyChips) {
+				// Stable branch
+				ascendNowToGet = Spice.additionalHeavenlyChips();
+			} else if(Spice.stableHeavenlyChipGains) {
+				// Dev branch
+				ascendNowToGet = Spice.stableHeavenlyChipGains();
+			}
+		}
+
 		var nextChipAt=Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet+1))-Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet));
 		var cookiesToNext=Game.HowManyCookiesReset(ascendNowToOwn+1)-(Game.cookiesEarned+Game.cookiesReset);
 		var percent=1-(cookiesToNext/nextChipAt);

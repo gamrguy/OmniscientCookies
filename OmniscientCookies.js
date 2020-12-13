@@ -1903,6 +1903,16 @@ OmniCookies.patchCursedFinger = function() {
 	}
 }
 
+/**
+ * Sets the scroll of all buildings to 0.
+ * Performed on reincarnation.
+ */
+OmniCookies.resetScroll = function() {
+	for(let name in Game.Objects) {
+		if(Game.Objects[name].scrollOffX) Game.Objects[name].scrollOffX = 0;
+	}
+}
+
 //#endregion
 //==============================//
 
@@ -1942,6 +1952,9 @@ OmniCookies.init = function() {
 	Game.registerHook('reset', function(hard) {
 		// Reset stock average data and frozen wrinklers when resetting
 		OmniCookies.defaultSave();
+
+		// Reset building scroll values
+		OmniCookies.resetScroll();
 	});
 
 	Game.Notify(`Loaded ${OmniCookies.name} ${OmniCookies.version}`,'',0,3);

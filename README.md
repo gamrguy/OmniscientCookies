@@ -220,6 +220,7 @@ Cursed Finger tweaks (experimental; disabled by default)
 --------------------------------------------------------
 A pair of experimental tweaks to Cursed Finger:  
 - Does not snapshot your CpS; is affected by buffs/changes after gaining the buff
-- CpS gained from CF is considered "passive" CpS and is eaten by wrinklers and counted for building production totals  
+- CpS gained from CF is considered "passive" CpS and is eaten by wrinklers and counted for building production totals
+
 Note that the wrinkler synergy significantly increases the power of Cursed Finger.  
 Don't use this option if you want it to still feel like a debuff.

@@ -27,7 +27,7 @@ OmniCookies.settings = {
 	skruuiaRebalance: false,
 	improveAscendMeter: true,
 	displaySeasons: true,
-	separateSeasons: true,
+	separateSeasons: false,
 	bringGrandmaToWork: true,
 	cursedFinger: false
 }

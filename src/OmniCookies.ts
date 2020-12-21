@@ -61,8 +61,9 @@ let startupMessages = [
 	//`Originally, the name was referring to the building scroll feature, which was the first feature I made. Now it probably more accurately refers to the large and slightly random scope of this mod. Despite this I don't think the name is going to change anytime soon, so you had better get used to it. I wonder if anyone can read this fast? If you're reading this and can, how's your day been? It's lonely back here.`,
 	`Thank you for choosing the Typescript edition of Omniscient Cookies!<br>(No warranties, no refunds)`,
 	`What do Omniscient Cookies taste like?<br>Study reveals a flavor 'somewhere between amateur Javascript and messy programming'`,
-	`Also try Spiced Cookies!`,
-	`You stared into the cookie,<br>and the cookie stared back`
+	`Also try <a href="https://github.com/staticvariablejames/SpicedCookies/" target="_blank">Spiced Cookies</a>!`,
+	`You stared into the cookie,<br>and the cookie stared back`,
+	`Check out the <a href="https://github.com/gamrguy/OmniscientCookies/" target="_blank">GitHub page</a>!`
 ]
 //#endregion
 

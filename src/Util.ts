@@ -102,6 +102,8 @@ export function quickCalcBulkPrice(building: Game.Object, bulk: number, sell?: b
 	let buildingCount = Math.max(0, building.amount - building.free);
 	let sum: number;
 	if(sell) {
+		if(buildingCount <= 0) return 0;
+		buildingCount--;
 		sum = powerSumRange(Game.priceIncrease, Math.max(0, buildingCount-bulk), buildingCount);
 	} else {
 		sum = powerSumRange(Game.priceIncrease, buildingCount, buildingCount + bulk-1);
@@ -181,7 +183,7 @@ export function switchMilkIcon(milkID: number): void {
  * @returns {number} Number of synergy grandmas
  */
 export function getNumSynergyGrandmas(building: Game.Object): number {
-	if(building.grandma) {
+	if(building.grandma && building.grandma.bought) {
 		return Math.floor(Game.Objects['Grandma'].amount / (building.id - 1));
 	}
 	return -1;

@@ -232,3 +232,11 @@ A pair of experimental tweaks to Cursed Finger:
 
 Note that the wrinkler synergy significantly increases the power of Cursed Finger.  
 Don't use this option if you want it to still feel like a debuff.
+
+OptiCookies (experimental; disabled by default)
+-----------------------------------------------
+Applies some experimental performance enhancements that may or may not be compatible with other mods.
+
+Currently, this includes:
+- Replaces building price calculations with non-looping formulas
+- Fixes constant store refreshes being triggered by false upgrade sorting checks

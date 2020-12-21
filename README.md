@@ -139,8 +139,8 @@ Quality of Life enhancements
 Enhanced buying in bulk (enabled by default)
 --------------------------------------------
 
-![Enhanced bulk](doc/enhancedbulk.png "Partial buying in bulk is displayed properly")
-![Doublecut](doc/doublecut.png "Hold both SHIFT and CTRL to shortcut MAX/ALL")
+![Enhanced bulk](doc/enhancedbulk.png "Partial buying in bulk is displayed properly")  
+![Doublecut](doc/doublecut.gif "Hold both SHIFT and CTRL to shortcut MAX/ALL")
 
 Technically, the vanilla game allows partial buying in bulk, but greys out the buildings so it's not obvious.  
 This fixes that bug, allowing you to properly see how many buildings you can purchase and for how much.  

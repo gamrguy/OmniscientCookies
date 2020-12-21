@@ -140,10 +140,12 @@ Enhanced buying in bulk (enabled by default)
 --------------------------------------------
 
 ![Enhanced bulk](doc/enhancedbulk.png "Partial buying in bulk is displayed properly")
+![Doublecut](doc/doublecut.png "Hold both SHIFT and CTRL to shortcut MAX/ALL")
 
 Technically, the vanilla game allows partial buying in bulk, but greys out the buildings so it's not obvious.  
 This fixes that bug, allowing you to properly see how many buildings you can purchase and for how much.  
-Additionally, this allows using the "ALL" button when buying buildings, and makes "ALL" *mean* ALL, not 1000!
+Additionally, this allows using the "ALL" button when buying buildings, and makes "ALL" *mean* ALL, not 1000!  
+*Additionally*, you can now hold both SHIFT and CTRL at the same time to shortcut the MAX/ALL button.
 
 Show buff duration in tooltip (enabled by default)
 --------------------------------------------------

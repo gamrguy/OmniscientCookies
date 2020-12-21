@@ -260,6 +260,11 @@ let menuDisplay = new ConfigMenu([
 			{ text: 'Dangerous stocks ON' },
 			{ text: 'Dangerous stocks OFF' },
 			'(stock market affects total cookies earned)'
+		),
+		new BooleanButton('dangerousBrokers',
+			{ text: 'Dangerous brokers ON', func: () => Patches.dangerousBrokers.apply() },
+			{ text: 'Dangerous brokers OFF' },
+			'(hiring brokers reduces your Stock Market profits)'
 		)
 	]),
 	new Header("Pantheon"),

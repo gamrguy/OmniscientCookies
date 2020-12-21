@@ -97,6 +97,9 @@ class Settings {
 	/** Whether to apply experimental performance enhancements */
 	optiCookies: boolean
 
+	/** Whether to make stock brokers decrease Stock Market profits */
+	dangerousBrokers: boolean
+
 	/** Initializes to the default settings */
 	constructor() {
 		this.version = version;
@@ -128,6 +131,7 @@ class Settings {
 		this.bringGrandmaToWork = true;
 		this.cursedFinger = false;
 		this.optiCookies = false;
+		this.dangerousBrokers = false;
 	}
 
 	set(setting: string, value: any) {

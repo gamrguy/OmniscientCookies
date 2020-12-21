@@ -110,5 +110,6 @@ export let mod: Game.Mod = {
 		Patches.displaySeasonUnlock.toggle(settings.displaySeasons);
 		Patches.statsUpgradeCategories.toggle(settings.separateTechs || settings.separateSeasons);
 		Patches.optiCookies.toggle(settings.optiCookies);
+		Patches.dangerousBrokers.toggle(settings.dangerousBrokers);
 	}
 }

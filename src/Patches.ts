@@ -998,3 +998,28 @@ export let optiCookies = new Patch(function() {
 		}
 	}
 })
+
+export let dangerousBrokers = new Patch(function() {
+	Util.onMinigameLoaded('Bank', function() {
+		let market = Game.Objects['Bank'].minigame;
+		let brokerButton = l('bankBrokersBuy');
+		let parent = brokerButton.parentElement;
+
+		let newButton = document.createElement('div');
+		newButton.classList.add('bankButton', 'bankButtonBuy', 'bankButtonOff');
+		newButton.id = 'bankBrokersBuy';
+		newButton.innerHTML = "Hire";
+		newButton.onclick = (e) => {
+			if (market.brokers<market.getMaxBrokers() && Game.cookies>=market.getBrokerPrice()) {
+				Game.Spend(market.getBrokerPrice());
+				market.brokers+=1;
+				if(settings.dangerousBrokers) market.profit-=1200;
+				PlaySound('snd/cashIn2.mp3',0.6);
+				Game.SparkleOn((e.target) as any);
+			}
+		}
+
+		brokerButton.remove();
+		parent.appendChild(newButton);
+	})
+})

@@ -139,11 +139,13 @@ Quality of Life enhancements
 Enhanced buying in bulk (enabled by default)
 --------------------------------------------
 
-![Enhanced bulk](doc/enhancedbulk.png "Partial buying in bulk is displayed properly")
+![Enhanced bulk](doc/enhancedbulk.png "Partial buying in bulk is displayed properly")  
+![Doublecut](doc/doublecut.gif "Hold both SHIFT and CTRL to shortcut MAX/ALL")
 
 Technically, the vanilla game allows partial buying in bulk, but greys out the buildings so it's not obvious.  
 This fixes that bug, allowing you to properly see how many buildings you can purchase and for how much.  
-Additionally, this allows using the "ALL" button when buying buildings, and makes "ALL" *mean* ALL, not 1000!
+Additionally, this allows using the "ALL" button when buying buildings, and makes "ALL" *mean* ALL, not 1000!  
+*Additionally*, you can now hold both SHIFT and CTRL at the same time to shortcut the MAX/ALL button.
 
 Show buff duration in tooltip (enabled by default)
 --------------------------------------------------
@@ -170,6 +172,15 @@ Dangerous stocks (disabled by default)
 In the vanilla game, buying and selling stocks has little effect on your cookies earned.  
 With this modifier, you're gambling not just your current cookies, but your earned cookies as well.  
 This means you can actually *lose* ascension progress, but *gain* it as well, if you play your cards right!
+
+Dangerous brokers (disabled by default)
+---------------------------------------
+When you hire a broker, reduces your market profits by $1200.  
+This makes hiring brokers consistent with other Stock Market mechanics,  
+and lets you know whether you've made back on your investment.
+
+If **Dangerous stocks** is also enabled, hiring brokers takes from your total cookies baked!  
+Watch out!
 
 Pantheon tweaks
 ===============
@@ -224,3 +235,11 @@ A pair of experimental tweaks to Cursed Finger:
 
 Note that the wrinkler synergy significantly increases the power of Cursed Finger.  
 Don't use this option if you want it to still feel like a debuff.
+
+OptiCookies (experimental; disabled by default)
+-----------------------------------------------
+Applies some experimental performance enhancements that may or may not be compatible with other mods.
+
+Currently, this includes:
+- Replaces building price calculations with non-looping formulas
+- Fixes constant store refreshes being triggered by false upgrade sorting checks

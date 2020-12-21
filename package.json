@@ -1,17 +1,16 @@
 {
-	"name": "cppkies-ts-template",
-	"version": "1.0.0",
-	"description": "A very awesome CC mod!",
+	"name": "omnicookies",
+	"version": "2.0.0",
+	"description": "A diverse visual and QoL mod for Cookie Clicker.",
 	"private": true,
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"build": "npx rollup -c"
 	},
 	"keywords": [
-		"cppkies"
 	],
-	"author": "Cppkies Team",
-	"license": "ISC",
+	"author": "gamrguy",
+	"license": "MIT",
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "^11.0.2",
 		"@rollup/plugin-node-resolve": "^7.1.1",

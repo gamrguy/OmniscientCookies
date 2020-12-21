@@ -173,6 +173,12 @@ In the vanilla game, buying and selling stocks has little effect on your cookies
 With this modifier, you're gambling not just your current cookies, but your earned cookies as well.  
 This means you can actually *lose* ascension progress, but *gain* it as well, if you play your cards right!
 
+Dangerous brokers (disabled by default)
+---------------------------------------
+When you hire a broker, reduces your market profits by $1200.  
+This makes hiring brokers consistent with other Stock Market mechanics,  
+and lets you know whether you've made back on your investment.
+
 Pantheon tweaks
 ===============
 

@@ -1011,9 +1011,15 @@ export let dangerousBrokers = new Patch(function() {
 		newButton.innerHTML = "Hire";
 		newButton.onclick = (e) => {
 			if (market.brokers<market.getMaxBrokers() && Game.cookies>=market.getBrokerPrice()) {
-				Game.Spend(market.getBrokerPrice());
+				if(settings.dangerousBrokers && settings.dangerousStocks) {
+					Game.Dissolve(market.getBrokerPrice());
+				} else {
+					Game.Spend(market.getBrokerPrice());
+				}
 				market.brokers+=1;
-				if(settings.dangerousBrokers) market.profit-=1200;
+				if(settings.dangerousBrokers) {
+					market.profit-=1200;
+				}
 				PlaySound('snd/cashIn2.mp3',0.6);
 				Game.SparkleOn((e.target) as any);
 			}

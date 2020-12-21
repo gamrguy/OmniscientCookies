@@ -179,6 +179,9 @@ When you hire a broker, reduces your market profits by $1200.
 This makes hiring brokers consistent with other Stock Market mechanics,  
 and lets you know whether you've made back on your investment.
 
+If **Dangerous stocks** is also enabled, hiring brokers takes from your total cookies baked!  
+Watch out!
+
 Pantheon tweaks
 ===============
 

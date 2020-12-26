@@ -1002,17 +1002,39 @@ export let optiCookies = new Patch(function() {
 		`if (price<lastPrice && price!=0) Game.upgradesToRebuild=1;`,
 		'replace'
 	);
-
+	if(this.applied) console.log('what the fuck?!');
 	// use fast calc instead of loop calc
 	for(let obj of Game.ObjectsById) {
-		obj.getSumPrice=function(amount) {
-			let price = Util.quickCalcBulkPrice(this, amount);
-			return price;
-		}
-		obj.getReverseSumPrice=function(amount) {
-			let price = Util.quickCalcBulkPrice(this, amount, undefined, true);
-			return price;
-		}
+		obj.getSumPrice = Cppkies.injectCodes(obj.getSumPrice, [
+			[   // Immediately cancel the loop
+				/(for \(var i=)(Math\.max\(0,this\.amount\))(;)/,
+				`$1Infinity$3`,
+				'replace'
+			],
+			[   // Change to quick calc
+				`=Game.modifyBuildingPrice(this,price);`,
+				`=OmniCookies.Util.quickCalcBulkPrice(this, amount);`,
+				`replace`
+			]
+		]);
+		obj.getReverseSumPrice = Cppkies.injectCodes(obj.getReverseSumPrice, [
+			[   // Immediately cancel the loop
+				/(for \(var i=)(Math\.max\(0,\(this\.amount\)-amount\))(;)/,
+				`$1Infinity$3`,
+				'replace'
+			],
+			[   // Change to quick calc
+				`=Game.modifyBuildingPrice(this,price);`,
+				`=OmniCookies.Util.quickCalcBulkPrice(this, amount, undefined, true);`,
+				`replace`
+			],
+			[
+				// Remove sell multiplier, already calculated that
+				`price*=this.getSellMult`,
+				`//`,
+				'before'
+			]
+		]);
 	}
 })
 

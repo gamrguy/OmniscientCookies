@@ -1,5 +1,5 @@
 export let name = 'Omniscient Cookies'
-export let version = 'v2.1.0'
+export let version = 'v2.1.1'
 
 interface Vars {
 	lastMilk: number

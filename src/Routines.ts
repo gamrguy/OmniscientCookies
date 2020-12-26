@@ -56,18 +56,12 @@ class LogicRoutineCollection extends RoutineCollection {
 		let Spice = window.Spice;
 		// Spiced cookies
 		if(typeof Spice != 'undefined' && Spice.settings.numericallyStableHeavenlyChipGains) {
-			if(Spice.additionalHeavenlyChips) {
-				// Stable branch
-				ascendNowToGet = Spice.additionalHeavenlyChips();
-			} else if(Spice.stableHeavenlyChipGains) {
-				// Dev branch
-				ascendNowToGet = Spice.stableHeavenlyChipGains();
-			}
+			ascendNowToGet = Spice.stableHeavenlyChipGains();
 		}
 
-		var nextChipAt=Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet+1))-Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet));
-		var cookiesToNext=Game.HowManyCookiesReset(ascendNowToOwn+1)-(Game.cookiesEarned+Game.cookiesReset);
-		var percent=1-(cookiesToNext/nextChipAt);
+		let nextChipAt=Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet+1))-Game.HowManyCookiesReset(Math.floor(chipsOwned+ascendNowToGet));
+		let cookiesToNext=Game.HowManyCookiesReset(ascendNowToOwn+1)-(Game.cookiesEarned+Game.cookiesReset);
+		let percent=1-(cookiesToNext/nextChipAt);
 		
 		if(!vars.ascendMeterPercent) vars.ascendMeterPercent = percent;
 		if(!vars.ascendMeterLevel) vars.ascendMeterLevel = ascendNowToGet;
@@ -104,8 +98,15 @@ class LogicRoutineCollection extends RoutineCollection {
 		ascendNumber.textContent='+'+window.SimpleBeautify(ascendNowToGet - vars.levelDiff);
 
 		vars.ascendMeterPercent = Game.ascendMeterPercent;
-		ascendMeter.style.removeProperty('width');
-	}, () => settings.improveAscendMeter);
+	}, () => {
+		if(settings.improveAscendMeter) {
+			return true;
+		} else {
+			let ascendMeter = Game.ascendMeter as HTMLElement;
+			ascendMeter.style.removeProperty('width');
+			return false;
+		}
+	});
 	/**
 	 * If enabled, Skruuia modifies wrinkler cookie consumption.
 	 * This increases the amount of cookies that get multiplied by the wrinklers.

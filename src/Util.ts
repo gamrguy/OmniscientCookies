@@ -1,10 +1,5 @@
 import * as Logger from './Logger'
 
-export interface CodeReplacement {
-	readonly pattern: string | RegExp
-	readonly replacement: string
-}
-
 export enum ButtonType {
 	SHIFT = 16,
 	CTRL = 17
@@ -21,33 +16,6 @@ interface BuyBulkData {
 	readonly maxAmount: number
 }
 
-/** 
- * Used for replace-patching functions.  
- * Replacements are applied in order.  
- * Logs a warning if any of them fail, but does not abort the process.
- * 
- * @param {Function} targetFunction Function to patch
- * @param {CodeReplacement[]} listReplacements Replacements to apply
- * @param {string} preEvalScript Code to run before evaluating the result
- * @returns {Function} The new, edited function
- */
-export function replaceCode<T extends Function>(targetFunction: T, listReplacements: CodeReplacement[], preEvalScript?: string): T {
-	let code = targetFunction.toString();
-	let newCode = code;
-	for(let i in listReplacements) {
-		let patt = listReplacements[i].pattern;
-		let repl = listReplacements[i].replacement;
-		if((typeof patt == 'string' && !newCode.includes(patt)) 
-			|| (typeof patt == 'object' && !newCode.match(patt))) {
-			Logger.warn(`Replacement pattern '${patt}' not found`);
-		}
-		newCode = newCode.replace(patt, repl);
-	}
-	let func: T;
-	eval((preEvalScript ? preEvalScript : '') + 'func = ' + newCode);
-	return func;
-}
-
 /**
  * Calculates the price and maximum buildings that can be bought from buying in bulk
  * 
@@ -55,7 +23,7 @@ export function replaceCode<T extends Function>(targetFunction: T, listReplaceme
  * @param {number} amount Number of buildings to buy
  * @returns {BuyBulkData} Total and maximum affordable price and number of buildings
  */
-export function calcMaxBuyBulk(building: Game.Object, amount: number): BuyBulkData {
+export function calcMaxBuyBulk(building: Game.Object, amount: number, scaling: number = Game.priceIncrease): BuyBulkData {
 	let totalPrice = 0;
 	let maxPrice = 0;
 	let maxAmount = 0;
@@ -69,9 +37,9 @@ export function calcMaxBuyBulk(building: Game.Object, amount: number): BuyBulkDa
 		return { totalPrice: Infinity, maxPrice: Infinity, maxAmount: amount };
 	}
 	
-	totalPrice = quickCalcBulkPrice(building, amount);
-	maxAmount = Math.min(amount, quickCalcMaxBuy(building) + building.free);
-	maxPrice = quickCalcBulkPrice(building, maxAmount);
+	totalPrice = quickCalcBulkPrice(building, amount, scaling);
+	maxAmount = Math.min(amount, quickCalcMaxBuy(building, scaling) + building.free);
+	maxPrice = quickCalcBulkPrice(building, maxAmount, scaling);
 	
 	return { totalPrice: totalPrice, maxPrice: maxPrice, maxAmount: maxAmount };
 }
@@ -82,12 +50,11 @@ export function calcMaxBuyBulk(building: Game.Object, amount: number): BuyBulkDa
  * @param {Game.Object} building Game.Object to calculate maximum buy count of
  * @returns {number} Maximum number of this building that can be bought
  */
-export function quickCalcMaxBuy(building: Game.Object): number {
+export function quickCalcMaxBuy(building: Game.Object, scaling: number = Game.priceIncrease): number {
 	let cookies = Game.cookies;
 	cookies /= Game.modifyBuildingPrice(building.name, building.basePrice);
 	let boughtCount = building.amount - building.free;
-	let priceInc = Game.priceIncrease;
-	return Math.floor(Math.log(priceInc**boughtCount + (priceInc - 1)*cookies)/Math.log(priceInc) - building.amount);
+	return Math.floor(Math.log(scaling**boughtCount + (scaling - 1)*cookies)/Math.log(scaling) - building.amount);
 }
 
 /**
@@ -98,15 +65,15 @@ export function quickCalcMaxBuy(building: Game.Object): number {
  * @param {boolean} sell Whether to instead calculate selling the buildings
  * @returns {number} Amount of cookies this many buildings is worth
  */
-export function quickCalcBulkPrice(building: Game.Object, bulk: number, sell?: boolean): number {
+export function quickCalcBulkPrice(building: Game.Object, bulk: number, scaling: number = Game.priceIncrease, sell?: boolean): number {
 	let buildingCount = Math.max(0, building.amount - building.free);
 	let sum: number;
 	if(sell) {
 		if(buildingCount <= 0) return 0;
 		buildingCount--;
-		sum = powerSumRange(Game.priceIncrease, Math.max(0, buildingCount-bulk), buildingCount);
+		sum = powerSumRange(scaling, Math.max(0, buildingCount-bulk), buildingCount);
 	} else {
-		sum = powerSumRange(Game.priceIncrease, buildingCount, buildingCount + bulk-1);
+		sum = powerSumRange(scaling, buildingCount, buildingCount + bulk-1);
 	}
 	sum = Game.modifyBuildingPrice(building.name, sum*building.basePrice);
 	if(sell) sum *= building.getSellMultiplier();
@@ -254,3 +221,17 @@ export function loadCustomAsset(img: string) {
 export function holdingButton(btn: ButtonType): number {
 	return Game.keys[btn] == undefined ? 0 : Game.keys[btn];
 }
+
+/** Whether the mouse is within a given rectangle. Used for UpdateWrinklers */
+export function inRect(x: number,y: number, rect: any): boolean {
+	//find out if the point x,y is in the rotated rectangle rect{w,h,r,o} (width,height,rotation in radians,y-origin) (needs to be normalized)
+	//I found this somewhere online I guess
+	let dx = x+Math.sin(-rect.r)*(-(rect.h/2-rect.o)),dy=y+Math.cos(-rect.r)*(-(rect.h/2-rect.o));
+	let h1 = Math.sqrt(dx*dx + dy*dy);
+	let currA = Math.atan2(dy,dx);
+	let newA = currA - rect.r;
+	let x2 = Math.cos(newA) * h1;
+	let y2 = Math.sin(newA) * h1;
+	if (x2 > -0.5 * rect.w && x2 < 0.5 * rect.w && y2 > -0.5 * rect.h && y2 < 0.5 * rect.h) return true;
+	return false;
+};

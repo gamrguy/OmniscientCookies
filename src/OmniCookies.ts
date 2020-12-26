@@ -7,6 +7,7 @@ import * as _Patches from './Patches'
 import * as _Vars from "./Vars"
 import * as _Routines from "./Routines"
 import * as _GrandmaSupport from "./GrandmaSupport"
+import Cppkies from 'cppkies'
 
 export let name = _Vars.name
 export let version = _Vars.version
@@ -32,7 +33,7 @@ let grandmaDesc = [
 	`priestesses`,
 	`witches`,
 	choose([`aliens`, `bounty hunters`, `spice traders`, `kessel runners`]),
-	`alchemists`,
+	choose([`full-cookie alchemists`, `golden grans`]),
 	choose([`elder abominations`, `flesh piles`, `doughy beings`]),
 	choose([`time policemas`, `nice old lady's nice old ladies`]),
 	`antimatter constructs`,
@@ -42,12 +43,12 @@ let grandmaDesc = [
 	choose([`NaNnies`, `[Error: cookie is not defined]s`, `['g','r','a','n']s`]),
 	choose([`spaghetti bakers`, `pancake flippers`, `not-cookie productionists`, `pastry panhandlers`])
 ]
-let buildingChoice = choose(Game.ObjectsById);
+let buildingChoice = choose(Game.ObjectsById.slice(0, 18)); //no modded buildings sorry
 if(buildingChoice == Game.Objects['Cursor']) buildingChoice = Game.Objects['Grandma'];
 let numGrandmas = 0;
 if(buildingChoice == Game.Objects['Grandma']) numGrandmas = Game.Objects['Grandma'].amount;
 else numGrandmas = Util.getNumSynergyGrandmas(buildingChoice);
-let grandmaMessage = `Your ${numGrandmas} ${grandmaDesc[buildingChoice.id-1]} missed you!`
+let grandmaMessage = `Your <b>${numGrandmas} ${grandmaDesc[buildingChoice.id-1]}</b> missed you!`
 if(buildingChoice.amount == 0 || numGrandmas <= 0) {
 	grandmaMessage = `. . . but nobody came`
 }
@@ -59,7 +60,7 @@ let startupMessages = [
 	`The cookies have eyes.<br>Watch yourself out there`,
 	`Over the river and through the cookies`,
 	//`Originally, the name was referring to the building scroll feature, which was the first feature I made. Now it probably more accurately refers to the large and slightly random scope of this mod. Despite this I don't think the name is going to change anytime soon, so you had better get used to it. I wonder if anyone can read this fast? If you're reading this and can, how's your day been? It's lonely back here.`,
-	`Thank you for choosing the Typescript edition of Omniscient Cookies!<br>(No warranties, no refunds)`,
+	`Thank you for choosing the ${choose(['Typescript', 'Cppkies'])} edition of Omniscient Cookies!<br>(No warranties, no refunds)`,
 	`What do Omniscient Cookies taste like?<br>Study reveals a flavor 'somewhere between amateur Javascript and messy programming'`,
 	`Also try <a href="https://github.com/staticvariablejames/SpicedCookies/" target="_blank">Spiced Cookies</a>!`,
 	`You stared into the cookie,<br>and the cookie stared back`,
@@ -72,7 +73,6 @@ export let mod: Game.Mod = {
 		Patches.smoothBuildings.apply();
 		Patches.scrollingBuildings.apply();
 		Patches.buffTooltips.apply();
-		Patches.updateMenu.apply();
 		Patches.tooltipWobble.apply();
 		Patches.cycliusGains.apply();
 		Patches.stockInfo.apply();
@@ -82,11 +82,12 @@ export let mod: Game.Mod = {
 		Patches.skruuiaRebalance.apply();
 		Patches.dangerousStocks.apply();
 		Patches.cycliusInfo.apply();
-	
-		Game.registerHook('logic', () => Routines.logicRoutine.run());
-		Game.registerHook('draw', () => Routines.drawRoutine.run());
-		Game.registerHook('reset', (hard) => Routines.resetRoutine.run());
-		
+
+		Cppkies.on('draw', () => Routines.drawRoutine.run());
+		Cppkies.on('logic', () => Routines.logicRoutine.run());
+		Cppkies.on('reset', () => Routines.resetRoutine.run());
+		Cppkies.on('optionsMenu', () => Config.customOptionsMenu());
+
 		Game.Notify(`Loaded ${name} ${version}`, '<q>' + choose(startupMessages) + '</q>', [10, 31], 6);
 	},
 	
@@ -112,5 +113,7 @@ export let mod: Game.Mod = {
 		Patches.statsUpgradeCategories.toggle(settings.separateTechs || settings.separateSeasons);
 		Patches.optiCookies.toggle(settings.optiCookies);
 		Patches.dangerousBrokers.toggle(settings.dangerousBrokers);
+		Patches.heavenlyCookies.toggle(settings.heavenlyCookies);
+		Patches.buildingPriceBuff.toggle(settings.buildingPriceBuff);
 	}
 }

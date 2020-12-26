@@ -1,5 +1,6 @@
 import * as Util from "./Util";
 import * as Logger from "./Logger";
+import { vars } from "./Vars";
 
 export interface Icon {
 	frame: number
@@ -49,12 +50,14 @@ export interface Properties {
  * Registers support for a custom Bring Grandma to Work Day display
  * 
  * @param props Grandma support properties
+ * @param granToBan Grandma sprite to disallow appearing in normal grandma building
  */
-export function registerSupport(props: Properties) {
+export function registerSupport(props: Properties, granToBan?: string) {
 	if(grandmaProperties[props.building.name]) {
 		Logger.warn(`Replacing custom grandma support for '${props.building.name}'!`);
 	}
 	grandmaProperties[props.building.name] = props;
+	if(granToBan) vars.bannedGrandmas[granToBan] = true;
 }
 
 /**
@@ -97,7 +100,6 @@ export function tryDrawGrandmas(building: Game.Object, basePic: Icon, id: number
 	let drawnGrandmas = grandmaAmountCalc(id, freq);
 	let prevDrawnGrandmas = grandmaAmountCalc(id-1, freq);
 	let num = drawnGrandmas-prevDrawnGrandmas;
-	if(drawnGrandmas - prevDrawnGrandmas >= 2) drawnGrandmas--;
 	num = Math.floor(Math.max(0, Math.min(num, currentGrandmas - drawnGrandmas)));
 
 	let grandmas: Icon[] = [];

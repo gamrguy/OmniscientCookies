@@ -1,4 +1,5 @@
 import * as OmniCookies from './OmniCookies'
+import Cppkies from 'cppkies'
 
 declare global {
 	interface Window {
@@ -11,8 +12,11 @@ if(window.OmniCookies) {
 	OmniCookies.Logger.warn("Mod loaded twice???")
 	OmniCookiesExport = window.OmniCookies
 } else {
-	Game.registerMod(OmniCookies.name, OmniCookies.mod)
-	OmniCookiesExport = OmniCookies
+	Cppkies.onLoad.push(function() {
+		Game.registerMod(OmniCookies.name, OmniCookies.mod);
+	});
+
+	OmniCookiesExport = OmniCookies;
 	window.OmniCookies = OmniCookies;
 }
 

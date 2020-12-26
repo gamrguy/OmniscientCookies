@@ -5,7 +5,7 @@ export enum BypassFancySetting {
 	Default = 0, Fast = 1, Fancy = 2
 }
 
-class Settings {
+export class Settings {
 	/** Current Omniscient Cookies version */
 	version: string;
 
@@ -100,6 +100,15 @@ class Settings {
 	/** Whether to make stock brokers decrease Stock Market profits */
 	dangerousBrokers: boolean
 
+	/** Whether to allow certain heavenly upgrades to add their icons to the cookie pool */
+	heavenlyCookies: boolean
+
+	/** Whether to make building price multipliers instead affect the price scaling */
+	buildingPriceBuff: boolean
+
+	/** Exponent of 10 to aim for when the ascend meter fills */
+	//ascendMeterPrecision: number
+
 	/** Initializes to the default settings */
 	constructor() {
 		this.version = version;
@@ -132,6 +141,9 @@ class Settings {
 		this.cursedFinger = false;
 		this.optiCookies = false;
 		this.dangerousBrokers = false;
+		this.heavenlyCookies = true;
+		this.buildingPriceBuff = false;
+		//this.ascendMeterPrecision = 0;
 	}
 
 	set(setting: string, value: any) {

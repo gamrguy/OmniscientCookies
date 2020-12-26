@@ -14,6 +14,8 @@ Omniscient Cookies is still gaining new features!
 As usual, it may be a good idea to **back up your save** just in case.  
 However, most features **do not** directly impact the game mechanics.
 
+This mod uses Cppkies! Don't worry though, it'll load itself automatically if needed.
+
 To load Omniscient Cookies, you can simply add  
 <https://gamrguy.github.io/OmniscientCookies/OmniscientCookies.js>  
 to [Cookie Clicker Mod Manager](https://github.com/klattmose/CookieClickerModManager).
@@ -124,12 +126,21 @@ and to provide a tangible sense of speed.
 
 *May* cost performance. *Probably* won't.
 
+Heavenly cookies (enabled by default)
+-------------------------------------
+Allows certain prestige upgrades to act like cookie upgrades.  
+This means they gain the \[Cookie] tag and can appear as cookie particles.  
+The affected vanilla prestige upgrades are:
+- Heavenly cookies
+- Wrinkly cookies
+- Sugar crystal cookies
+
 Buildings/cursors/wrinklers always fancy/fast/default (default by default)
 --------------------------------------------------------------------------
 
 ![Fancy options](doc/fancyoptions.png "Certain visual features can have their graphical fidelity modified")
 
-Allows buildings and/or cursors to ignore the Fancy setting.  
+Allows buildings, cursors, and/or wrinklers to ignore the Fancy setting.  
 This can help fine-tune your performance or visual style a bit further.  
 Most notably helps with using **Building scroll** while Fancy is off.
 
@@ -235,6 +246,12 @@ A pair of experimental tweaks to Cursed Finger:
 
 Note that the wrinkler synergy significantly increases the power of Cursed Finger.  
 Don't use this option if you want it to still feel like a debuff.
+
+Building price modifier buff (experimental; disabled by default)
+----------------------------------------------------------------
+Makes building price modifiers affect the price scaling instead of per-building price.  
+This makes such modifiers exponentially more effective as you gain more buildings.  
+However, it also makes buy/sell loops easy to achieve.
 
 OptiCookies (experimental; disabled by default)
 -----------------------------------------------

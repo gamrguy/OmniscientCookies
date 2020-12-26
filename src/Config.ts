@@ -1,4 +1,4 @@
-import { settings } from './Settings'
+import { Settings, settings } from './Settings'
 import { name, vars, version } from './Vars'
 import * as Util from './Util'
 import * as Patches from './Patches'
@@ -18,39 +18,39 @@ interface ConfigElement {
 	display: () => HTMLElement
 }
 
-class OptionedButton implements ConfigElement {
-	settingName: string
+class OptionedButton<T extends keyof Settings> implements ConfigElement {
+	settingName: T
 	options: ButtonOption[]
 	desc: string
-	constructor(settingName: string, options: ButtonOption[], desc: string) {
+	id: string
+	constructor(settingName: T, options: ButtonOption[], desc: string) {
 		this.settingName = settingName;
 		this.options = options;
 		this.desc = desc;
+		this.id = "OmniCookiesButton_" + this.settingName;
 	}
 	display(): HTMLDivElement {
 		let div = document.createElement('div');
 	
 		let set = Number(settings[this.settingName]);
 		let selected = this.options[set];
-		let buttonId = "OmniCookiesButton_" + this.settingName;
 		let a = document.createElement('a');
-		a.id = buttonId;
+		a.id = this.id;
 		a.className = 'option' + (selected.off ? ' off' : '');
-
-		let sett = this.settingName;
-		let opt = this.options;
-		a.onclick = this.toggleFunction(buttonId, sett, opt);
-		a.textContent = selected.text;
+		a.onclick = this.toggleFunction();
+		a.innerHTML = selected.text;
 		div.appendChild(a);
 
 		let label = document.createElement('label');
-		label.textContent = this.desc;
+		label.innerHTML = this.desc;
 		div.appendChild(label);
 
 		return div;
 	}
-
-	toggleFunction(buttonId: string, settingName: string, options: ButtonOption[]): () => void {
+	toggleFunction(): () => void {
+		let settingName = (this.settingName as string);
+		let options = this.options;
+		let buttonId = this.id;
 		return () => {
 			settings[settingName]++;
 			if(settings[settingName] >= options.length) settings[settingName] = 0;
@@ -65,16 +65,74 @@ class OptionedButton implements ConfigElement {
 	}
 }
 
-class BooleanButton extends OptionedButton {
-	settingName: string
+class BooleanButton<T extends keyof Settings> extends OptionedButton<T> {
 	onOption: ButtonOption
 	offOption: ButtonOption
-	desc: string
-	constructor(settingName: string, onOption: ButtonOption, offOption: ButtonOption, desc: string) {
+	constructor(settingName: T, onOption: ButtonOption, offOption: ButtonOption, desc: string) {
 		super(settingName, [offOption, onOption], desc);
 		this.onOption = onOption;
 		this.offOption = offOption;
 		offOption.off = true;
+	}
+}
+
+class Slider<T extends keyof Settings> implements ConfigElement {
+	title: string
+	settingName: T
+	min: number
+	max: number
+	step: number
+	format: (num: number) => string
+	constructor(settingName: T, title: string, min: number, max: number, step: number, format: (num: number) => string) {
+		this.settingName = settingName;
+		this.title = title;
+		this.min = min;
+		this.max = max;
+		this.step = step;
+		this.format = format;
+	}
+	display() {
+		let value = (settings[this.settingName] as number);
+		let box = document.createElement('div');
+		box.className = 'sliderBox';
+
+		let title = document.createElement('div');
+		title.style.float = 'left';
+		title.innerHTML = this.title;
+		box.appendChild(title);
+
+		let sliderRightText = document.createElement('div');
+		sliderRightText.id = `OmniCookiesSlider_${this.settingName}RightText`
+		sliderRightText.style.float = 'right';
+		sliderRightText.innerHTML = this.format(value);
+		box.appendChild(sliderRightText);
+
+		let input = document.createElement('input');
+		input.id = `OmniCookiesSlider_${this.settingName}Slider`
+		input.style.clear = 'both';
+		input.type = 'range';
+		input.min = this.min.toString();
+		input.max = this.max.toString();
+		input.step = this.step.toString();
+		input.value = value.toString();
+		let format = this.format;
+		let settingName = this.settingName;
+		input.onchange = (ev) => {
+			let slider = (ev.target as HTMLInputElement);
+			settings[settingName] = (Math.round(Number(slider.value)) as any);
+			sliderRightText.innerHTML = format(Number(slider.value));
+		}
+		input.oninput = (ev) => {
+			let slider = (ev.target as HTMLInputElement);
+			settings[settingName] = (Math.round(Number(slider.value)) as any);
+			sliderRightText.innerHTML = format(Number(slider.value));
+		}
+		input.onmouseup = () => {
+			PlaySound('snd/tick.mp3');
+		}
+		box.appendChild(input);
+
+		return box;
 	}
 }
 
@@ -103,7 +161,7 @@ class Title implements ConfigElement {
 	display(): HTMLDivElement {
 		let title = document.createElement('div');
 		title.className = 'title';
-		title.textContent = this.text;
+		title.innerHTML = this.text;
 		return title;
 	}
 }
@@ -211,6 +269,16 @@ let menuDisplay = new ConfigMenu([
 			},
 			'(meter and number total update faster and smoother)'
 		),
+		// Not yet
+		/*new Slider('ascendMeterPrecision', 'Ascend Meter Precision',
+			0, 12, 1,
+			(num: number) => Beautify(10**num)
+		),*/
+		new BooleanButton('heavenlyCookies',
+			{ text: 'Heavenly cookies ON', func: () => Patches.heavenlyCookies.apply() },
+			{ text: 'Heavenly cookies OFF' },
+			'(certain heavenly upgrades act like cookie upgrades)'
+		),
 		new OptionedButton('buildingsBypassFancy',
 			[
 				{ text: 'Buildings always FANCY' },
@@ -303,22 +371,38 @@ let menuDisplay = new ConfigMenu([
 		new BooleanButton('optimizeBuildings',
 			{ text: 'Buildings draw smart ON' },
 			{ text: 'Buildings draw smart OFF' },
-			'(experimental; buildings attempt to skip unnecessary draw frames)'
+			'(buildings attempt to skip unnecessary draw frames)'
 		),
 		new BooleanButton('preserveWrinklers',
 			{ text: 'Preserve wrinklers ON' },
 			{ text: 'Preserve wrinklers OFF' },
-			'(experimental; attempts to preserve all wrinkler data on game save/load)'
+			'(attempts to preserve all wrinkler data on game save/load)'
 		),
 		new BooleanButton('cursedFinger',
 			{ text: 'Cursed Finger tweaks ON', func: () => Patches.cursedFingerTweaks.apply() },
 			{ text: 'Cursed Finger tweaks OFF', func: () => Patches.cursedFingerTweaks.remove() },
-			'(experimental; CF does not snapshot and counts as real passive CpS)'
+			'(CF does not snapshot and counts as real passive CpS)'
+		),
+		new BooleanButton('buildingPriceBuff',
+			{
+				text: 'Building price buff ON', 
+				func: () => {
+					Patches.buildingPriceBuff.apply();
+					Game.storeToRefresh = 1;
+				} 
+			},
+			{
+				text: 'Building price buff OFF',
+				func: () => {
+					Game.storeToRefresh = 1;
+				}
+			},
+			'(building price modifiers instead affect price scaling; <span class="warning">balance warning</span>)'
 		),
 		new BooleanButton('optiCookies',
 			{ text: 'OptiCookies ON', func: () => Patches.optiCookies.apply() },
 			{ text: 'OptiCookies OFF' },
-			'(experimental; a couple of small performance tweaks; disabling requires refresh)'
+			'(a couple of small performance tweaks; disabling requires refresh)'
 		)
 	])
 ])

@@ -1,8 +1,9 @@
 import * as Util from './Util'
 import { settings } from './Settings'
 import { vars } from './Vars'
+import Cppkies, { InjectParams } from 'cppkies'
 
-class Patch {
+export class Patch {
 	patchFunc: () => void
 	removeFunc: () => void
 	applied: boolean
@@ -35,24 +36,13 @@ export let scrollbarStyle = new Patch(
 	() => Util.scrollbarStyle('scroll')
 )
 
-/** Patches UpdateMenu to add in the custom options */
-export let updateMenu = new Patch(function() {
-	Game.UpdateMenu = Util.replaceCode(Game.UpdateMenu, [
-		{
-			pattern: /}$/,
-			replacement: 'OmniCookies.Config.customOptionsMenu();$&'
-		}
-	]);
-})
-
 /** Patches DrawBuildings to perform the smoothBuildings setting */
 export let smoothBuildings = new Patch(function() {
-	Game.DrawBuildings = Util.replaceCode(Game.DrawBuildings, [
-		{
-			pattern: 'Game.drawT%3==0',
-			replacement: 'OmniCookies.settings.smoothBuildings || $&'
-		}
-	])
+	Game.DrawBuildings = Cppkies.injectCode(Game.DrawBuildings,
+		'Game.drawT%3==0',
+		'OmniCookies.settings.smoothBuildings || ',
+		'before'
+	)
 })
 
 /** 
@@ -61,119 +51,126 @@ export let smoothBuildings = new Patch(function() {
  * Because reasons.
  */
 export let scrollingBuildings = new Patch(function() {
-	let drawPattern: Util.CodeReplacement[] = [
-		{   // Resize the canvas when it actually needs to
-			pattern: 'if \(this.toResize\)',
-			replacement: 'if (this.toResize || this.canvas.width != this.canvas.clientWidth || this.canvas.height != this.canvas.clientHeight)'
-		},
-		{   // Force draw on resize
-			pattern: 'this.toResize=false;',
-			replacement: '$&;this.forceDraw=true;'
-		},
-		{   // Do some tracking and determine whether this canvas actually needs to redraw
-			pattern: `if (typeof(bg)=='string') ctx.fillPattern`,
-			replacement: `
-				let synergyAmount = OmniCookies.settings.bringGrandmaToWork ? OmniCookies.Util.getNumSynergyGrandmas(this) : -1;
-				if(OmniCookies.settings.optimizeBuildings && !this.hasUnloadedImages && !this.forceDraw && !this.lastMouseOn && !this.mouseOn && (this.lastAmount == this.amount) && (this.name == 'Grandma' ? true : this.lastSynergyAmount == synergyAmount)) return;
-				this.forceDraw = false;
-				this.lastAmount = this.amount;
-				this.lastMouseOn = this.mouseOn;
-				this.lastSynergyAmount = synergyAmount;
-				this.hasUnloadedImages = Game.Loader.assetsLoaded.indexOf(this.art.bg) == -1;
-				let hasGrandmas = false;
-				$&`
-		},
-		{   // Check for unloaded building pics
-			pattern: 'var sprite=Pic(pic.pic);',
-			replacement: '$&\nthis.hasUnloadedImages = this.hasUnloadedImages || sprite == Game.Loader.blank;'
-		},
-		{   // Scroll the background with the scroll offset
-			pattern: '0,0,this.canvas.width,this.canvas.height,128,128',
-			replacement: '$&,-this.scrollOffX'
-		},
-		{   // Modify building image bounds based on scroll offset
-			pattern: 'var maxI=Math.floor(this.canvas.width',
-			replacement: 'var minI=Math.max(0, Math.floor((-50 + this.scrollOffX) / (w/rows)));\nvar maxI=Math.floor((this.canvas.width + 50 + this.scrollOffX)'
-		},
-		{   // Reset sprites
-			pattern: 'var i=this.pics.length;',
-			replacement: 'this.pics = [];\nvar i=minI;'
-		},
-		{   // Offset sprites
-			pattern: "var usedPic=(typeof(pic)=='string'?pic:pic(this,i));",
-			replacement: "x-=this.scrollOffX;\n$&"
-		},
-		{   // Scroll when mouse hovers over outer 100px of building view
-			pattern: 'var selected=-1;',
-			replacement: `
-				var speed = 20;
-				if(!OmniCookies.settings.smoothBuildings) speed *= 3;
-				if(this.mousePos[0] >= (this.canvas.width) - 100 && maxI <= this.amount + rows * 3) {
-					this.scrollOffX += Math.floor(speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100));
+	let drawPattern: InjectParams[] = [
+		[   // Resize the canvas when it actually needs to
+			'if (this.toResize)',
+			'if (this.toResize || this.canvas.width != this.canvas.clientWidth || this.canvas.height != this.canvas.clientHeight)',
+			'replace'
+		],
+		[   // Force draw on resize
+			'this.toResize=false;',
+			'$&;this.forceDraw=true;',
+			'replace'
+		],
+		[   // Do some tracking and determine whether this canvas actually needs to redraw
+			`if (typeof(bg)=='string') ctx.fillPattern`,
+			`let synergyAmount = OmniCookies.settings.bringGrandmaToWork ? OmniCookies.Util.getNumSynergyGrandmas(this) : -1;
+			if(OmniCookies.settings.optimizeBuildings && !this.hasUnloadedImages && !this.forceDraw && !this.lastMouseOn && !this.mouseOn && (this.lastAmount == this.amount) && (this.name == 'Grandma' ? true : this.lastSynergyAmount == synergyAmount)) return;
+			this.forceDraw = false;
+			this.lastAmount = this.amount;
+			this.lastMouseOn = this.mouseOn;
+			this.lastSynergyAmount = synergyAmount;
+			this.hasUnloadedImages = Game.Loader.assetsLoaded.indexOf(this.art.bg) == -1;
+			let hasGrandmas = false;\n`,
+			'before'
+		],
+		[   // Check for unloaded building pics
+			'var sprite=Pic(pic.pic);',
+			'\nthis.hasUnloadedImages = this.hasUnloadedImages || sprite == Game.Loader.blank;',
+			'after'
+		],
+		[   // Scroll the background with the scroll offset
+			'0,0,this.canvas.width,this.canvas.height,128,128',
+			',-this.scrollOffX',
+			'after'
+		],
+		[   // Modify building image bounds based on scroll offset
+			'var maxI=Math.floor(this.canvas.width',
+			`var minI=Math.max(0, Math.floor((-50 + this.scrollOffX) / (w/rows)));
+			var maxI=Math.floor((this.canvas.width + 50 + this.scrollOffX)`,
+			'replace'
+		],
+		[   // Reset sprites
+			'var i=this.pics.length;',
+			'this.pics = [];\nvar i=minI;',
+			'replace'
+		],
+	    [   // Offset sprites
+			"var usedPic=(typeof(pic)=='string'?pic:pic(this,i));",
+			"x-=this.scrollOffX;\n",
+			'before'
+		],
+		[   // Scroll when mouse hovers over outer 100px of building view
+			'var selected=-1;',
+			`var speed = 20;
+			if(!OmniCookies.settings.smoothBuildings) speed *= 3;
+			if(this.mousePos[0] >= (this.canvas.width) - 100 && maxI <= this.amount + rows * 3) {
+				this.scrollOffX += Math.floor(speed * ((this.mousePos[0] - (this.canvas.width - 100)) / 100));
+			}
+			if(this.mousePos[0] <= 100 && this.scrollOffX > 0) {
+				this.scrollOffX -= Math.floor(speed * (1 - this.mousePos[0] / 100));
+			}
+			if(this.scrollOffX < 0 || !OmniCookies.settings.scrollingBuildings) this.scrollOffX = 0;\n`,
+			'before'
+		],
+		[   // Reimplement delay on grandma hover shake
+			'ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2));',
+			`if(Game.drawT%3==0) {
+				this.lastRandX = Math.random()*4;
+				this.lastRandY = Math.random()*4;
+			}
+			ctx.drawImage(sprite,Math.floor(pic.x+this.lastRandX-2),Math.floor(pic.y+this.lastRandY-2));`,
+			'replace'
+		],
+		[   // Bring Grandma To Work Day
+			'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
+			`\nif(OmniCookies.settings.bringGrandmaToWork) {
+				let grandmas = OmniCookies.GrandmaSupport.tryDrawGrandmas(this, this.pics[this.pics.length-1], i);
+				if(grandmas && grandmas.length > 0){
+					hasGrandmas = true;
+					this.pics = this.pics.concat(grandmas);
 				}
-				if(this.mousePos[0] <= 100 && this.scrollOffX > 0) {
-					this.scrollOffX -= Math.floor(speed * (1 - this.mousePos[0] / 100));
-				}
-				if(this.scrollOffX < 0 || !OmniCookies.settings.scrollingBuildings) this.scrollOffX = 0;
-				$&`
-		},
-		{   // Reimplement delay on grandma hover shake
-			pattern: 'ctx.drawImage(sprite,Math.floor(pic.x+Math.random()*4-2),Math.floor(pic.y+Math.random()*4-2));',
-			replacement: `
-				if(Game.drawT%3==0) {
-					this.lastRandX = Math.random()*4;
-					this.lastRandY = Math.random()*4;
-				}
-				ctx.drawImage(sprite,Math.floor(pic.x+this.lastRandX-2),Math.floor(pic.y+this.lastRandY-2));`
-		},
-		{   // Bring Grandma To Work Day
-			pattern: 'this.pics.push({x:Math.floor(x),y:Math.floor(y),z:y,pic:usedPic,id:i,frame:frame});',
-			replacement: `$&
-				if(OmniCookies.settings.bringGrandmaToWork) {
-					let grandmas = OmniCookies.GrandmaSupport.tryDrawGrandmas(this, this.pics[this.pics.length-1], i);
-					if(grandmas && grandmas.length > 0){
-						hasGrandmas = true;
-						this.pics = this.pics.concat(grandmas);
-					}
-				}
-			`
-		},
-		{   // Enable grandma hovering on supported buildings
-			pattern: `if (this.name=='Grandma')`,
-			replacement: `if (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && hasGrandmas))`
-		},
-		{   // Count hovered grandmas as grandmas
-			pattern: `if (selected==i && this.name=='Grandma')`,
-			replacement: `if (selected==i && (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && pic.grandma)))`
-		},
-		{   // Don't let non-grandma things occlude hover detection
-			pattern: `if (this.mousePos[0]>=pic.x-marginW && this.m`,
-			replacement: `
-				if(this.name == 'Grandma' ? false : !pic.grandma) continue;
-			$&`
-		},
-		{   // Give grandma-supported buildings their own set of grandma seeds
-			pattern: `Math.seedrandom(Game.seed+' '+pic.id/*+' '+pic.id*/);`,
-			replacement: `Math.seedrandom(Game.seed+' '+pic.id+(this.name == 'Grandma' ? '' : ' '+this.name));`
-		}
+			}`,
+			'after'
+		],
+		[   // Enable grandma hovering on supported buildings
+			`if (this.name=='Grandma')`,
+			`if (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && hasGrandmas))`,
+			'replace'
+		],
+		[   // Count hovered grandmas as grandmas
+			`if (selected==i && this.name=='Grandma')`,
+			`if (selected==i && (this.name=='Grandma' || (OmniCookies.settings.bringGrandmaToWork && pic.grandma)))`,
+			'replace'
+		],
+		[   // Don't let non-grandma things occlude hover detection
+			`if (this.mousePos[0]>=pic.x-marginW && this.m`,
+			`if(this.name == 'Grandma' ? false : !pic.grandma) continue;\n`,
+			'before'
+		],
+		[   // Give grandma-supported buildings their own set of grandma seeds
+			`/*+' '+pic.id*/`,
+			`+(this.name == 'Grandma' ? '' : ' '+this.name)`,
+			'replace'
+		]
 	];
-	let mutePattern: Util.CodeReplacement[] = [
-		{   // Force draw on unmute
-			pattern: 'this.muted=val;',
-			replacement: '$&\nthis.forceDraw=true;'
-		}
+	let mutePattern: InjectParams[] = [
+		[   // Force draw on unmute
+			'this.muted=val;',
+			'\nthis.forceDraw=true;',
+			'after'
+		]
 	];
-	let redrawPattern: Util.CodeReplacement[] = [
-		{   // Force draw on "redraw"
-			pattern: 'me.pics=[];',
-			replacement: `$&
-				if(OmniCookies.settings.optimizeBuildings) {
-					me.forceDraw = true;
-				}
-			`
-		}
+	let redrawPattern: InjectParams[] = [
+		[   // Force draw on "redraw"
+			'me.pics=[];',
+			`\nif(OmniCookies.settings.optimizeBuildings) {
+				me.forceDraw = true;
+			}`,
+			'after'
+		]
 	];
-
+	
 	for(let i in Game.Objects) {
 		let building = (Game.Objects[i] as any);
 		if(building.id != 0) {
@@ -187,88 +184,104 @@ export let scrollingBuildings = new Patch(function() {
 			building.hasUnloadedImages = true;
 			building.forceDraw = true;
 		
-			building.draw = Util.replaceCode(building.draw, drawPattern);
-			building.mute = Util.replaceCode(building.mute, mutePattern);
-			building.redraw = Util.replaceCode(building.redraw, redrawPattern);
+			building.draw = Cppkies.injectCodes(building.draw, drawPattern);
+			building.mute = Cppkies.injectCodes(building.mute, mutePattern);
+			building.redraw = Cppkies.injectCodes(building.redraw, redrawPattern);
 		}
 	};
 
 	// Inject into Object to affect all future building types
-	Game.Object = Util.replaceCode(Game.Object, drawPattern);
-	Game.Object = Util.replaceCode(Game.Object, [
-		{   // Define variables
-			pattern: '//building canvas',
-			replacement: `
-				this.scrollOffX = 0;
-				this.lastRandX = 0;
-				this.lastRandY = 0;
-				this.lastOffX = 0;
-				this.lastMouseOn = this.mouseOn;
-				this.lastAmount = this.amount;
-				this.lastSynergyAmount = 0;
-				this.hasUnloadedImages = true;
-				this.forceDraw = true;
-			$&`
-		}
-	]);
-	Game.Object = Util.replaceCode(Game.Object, mutePattern);
-	Game.Object = Util.replaceCode(Game.Object, redrawPattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, drawPattern);
+	Game.Object = Cppkies.injectCode(Game.Object,
+		// Define variables
+		'//building canvas',
+		`this.scrollOffX = 0;
+		this.lastRandX = 0;
+		this.lastRandY = 0;
+		this.lastOffX = 0;
+		this.lastMouseOn = this.mouseOn;
+		this.lastAmount = this.amount;
+		this.lastSynergyAmount = 0;
+		this.hasUnloadedImages = true;
+		this.forceDraw = true;\n`,
+		'before'
+	);
+	Game.Object = Cppkies.injectCodes(Game.Object, mutePattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, redrawPattern);
 
 	// Bring Your Grandma to Work Day
-	Game.Objects['Grandma'].art.pic = Util.replaceCode((Game.Objects['Grandma'].art.pic as ((building: Game.Object, i: number) => string)), [
-		{   // Keep abnormal grandmas off the lawn during BYGTWD
-			pattern: `if (Game.Has('Far`,
-			replacement: `if(!OmniCookies.settings.bringGrandmaToWork) {
-			$&`
-		},
-		{   // After all, they have somewhere better to be!
-			pattern: `metaGrandma');`,
-			replacement: `$&
-			}`
-		},
-		{   // Script grannies and seasonal grannies get to stay home
-			pattern: `if (Game.Has('Alternate grandmas')) list.push('alternateGrandma');`,
-			replacement: `if(!OmniCookies.settings.bringGrandmaToWork) $&`
-		}
-	]);
+	Game.Objects['Grandma'].art.pic = Cppkies.injectCode(
+		(Game.Objects['Grandma'].art.pic as ((building: Game.Object, i: number) => string)),
+		// Remove banned grandmas from the list, happens after Cppkies hook
+		`return`,
+		`for(let i = list.length; i > 0; i--) {
+			let gran = list[i];
+			if(gran in OmniCookies.vars.bannedGrandmas) {
+				list.splice(i, 1);
+			}
+		}\n`,
+		'before'
+	);
+	
+	vars.bannedGrandmas = {
+		'farmerGrandma': true,
+		'workerGrandma': true,
+		'minerGrandma': true,
+		'cosmicGrandma': true,
+		'transmutedGrandma': true,
+		'alteredGrandma': true,
+		'grandmasGrandma': true,
+		'antiGrandma': true,
+		'rainbowGrandma': true,
+		'bankGrandma': true,
+		'templeGrandma': true,
+		'witchGrandma': true,
+		'luckyGrandma': true,
+		'metaGrandma': true,
+		'alternateGrandma': true
+	}
 })
 
 /** Patches building tooltips to look a bit better in some cases */
 export let buildingTooltips = new Patch(function() {
-	let tooltipPattern: Util.CodeReplacement[] = [
-		{
-			pattern: `if (synergiesStr!='') synergiesStr+=', ';`,
-			replacement: `if (OmniCookies.settings.betterBuildingTooltips || synergiesStr != '')
+	let tooltipPattern: InjectParams[] = [
+		[
+			`if (synergiesStr!='') synergiesStr+=', ';`,
+			`if (OmniCookies.settings.betterBuildingTooltips || synergiesStr != '')
 				synergiesStr += OmniCookies.settings.betterBuildingTooltips 
 					? '<br>&nbsp;&nbsp;&nbsp;&nbsp;- '
-					: ', ';`
-		},
-		{
-			pattern: `synergiesStr+=i+' +'+Beautify(synergiesWith[i]*100,1)+'%';`,
-			replacement: `synergiesStr+=i+' '+
+					: ', ';`,
+			'replace'
+		],
+		[
+			`synergiesStr+=i+' +'+Beautify(synergiesWith[i]*100,1)+'%';`,
+			`synergiesStr+=i+' '+
 			(OmniCookies.settings.betterBuildingTooltips ? '<b>' : '')+
 			'+'+Beautify(synergiesWith[i]*100,1)+'%'+
-			(OmniCookies.settings.betterBuildingTooltips ? '</b>' : '');`
-		},
-		{
-			pattern: `synergiesStr=\'...also boosting some other buildings : '+synergiesStr+' - all`,
-			replacement: `synergiesStr=\'...also boosting some other buildings'+
+			(OmniCookies.settings.betterBuildingTooltips ? '</b>' : '');`,
+			'replace'
+		],
+		[
+			`synergiesStr=\'...also boosting some other buildings : '+synergiesStr+' - all`,
+			`synergiesStr=\'...also boosting some other buildings'+
 			(OmniCookies.settings.betterBuildingTooltips 
 				? ': '+synergiesStr+'<br>&bull; ' 
-				: ' : '+synergiesStr+' - ')+'all`
-		},
-		{
-			pattern: `<div class="data"`,
-			replacement: `$& '+(OmniCookies.settings.betterBuildingTooltips ? 'style="white-space:nowrap;"' : '')+'`
-		}
+				: ' : '+synergiesStr+' - ')+'all`,
+			'replace'
+		],
+		[
+			`<div class="data"`,
+			`$& '+(OmniCookies.settings.betterBuildingTooltips ? 'style="white-space:nowrap;"' : '')+'`,
+			'replace'
+		]
 	];
 
 	for(var i in Game.Objects) {
 		var building = Game.Objects[i];
-		building.tooltip = Util.replaceCode(building.tooltip, tooltipPattern);
+		building.tooltip = Cppkies.injectCodes(building.tooltip, tooltipPattern);
 	}
 
-	Game.Object = Util.replaceCode(Game.Object, tooltipPattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, tooltipPattern);
 })
 
 /** Patches buff tooltips to show remaining time */
@@ -285,7 +298,7 @@ export let buffTooltips = new Patch(function() {
 	for(let i in Game.buffs) {
 		let buff = (Game.buffs[i] as BuffWithID);
 		vars.buffsById[buff.id] = buff;
-		let onmouseover: any = function() {
+		let onmouseover = function() {
 			if (!Game.mouseDown) {
 				Game.setOnCrate(this);
 				Game.tooltip.dynamic=1;
@@ -293,26 +306,28 @@ export let buffTooltips = new Patch(function() {
 				Game.tooltip.wobble();
 			}
 		}
-		onmouseover = onmouseover.toString().replace('function() {', '').replace(/}$/, '').replace('buff.id', buff.id);
-		Game.buffsL.getElementsByClassName('crate enabled buff')[buff.id].setAttribute('onmouseover', onmouseover);
+		let buffL = (Game.buffsL.getElementsByClassName('crate enabled buff')[buff.id] as HTMLElement);
+		buffL.removeAttribute('onmouseover');
+		buffL.onmouseover = onmouseover;
 	}
 
-	Game.gainBuff = Util.replaceCode(Game.gainBuff, [
-		{   // Place buff somewhere we can access it later
-			pattern: 'Game.buffsL.',
-			replacement: 'OmniCookies.vars.buffsById[buff.id] = buff;$&'
-		},
-		{   // Update buff desc to new max time
-			pattern: '//new duration is set to new',
-			replacement: `$&
-				var tempBuff=type.func(buff.time/Game.fps,arg1,arg2,arg3);
-				buff.desc = tempBuff.desc;
-			`
-		},
-		{   // Use dynamic tooltip instead of static tooltip
-			pattern: Game.gainBuff.toString().substr(1037,202), // yes really
-			replacement: `Game.getDynamicTooltip('(OmniCookies.vars.GetBuffTooltipFunc('+buff.id+'))', 'left', true)`
-		}
+	Game.gainBuff = Cppkies.injectCodes(Game.gainBuff, [
+		[   // Place buff somewhere we can access it later
+			'Game.buffsL.',
+			'OmniCookies.vars.buffsById[buff.id] = buff;\n',
+			'before'
+		],
+		[   // Update buff desc to new max time
+			'//new duration is set to new',
+			`var tempBuff=type.func(buff.time/Game.fps,arg1,arg2,arg3);
+			buff.desc = tempBuff.desc;`,
+			'after'
+		],
+		[   // Use dynamic tooltip instead of static tooltip
+			/Game\.getTooltip\([\s\S]+\):''\)\+' /,
+			`Game.getDynamicTooltip('(OmniCookies.vars.GetBuffTooltipFunc('+buff.id+'))', 'left', true):'')+' `,
+			'replace'
+		]
 	]);
 
 	// Create a test for header width
@@ -344,18 +359,16 @@ export let buffTooltips = new Patch(function() {
 
 	// Patch Stretch Time success roll to update buff description
 	let patchGrimoire = setInterval(function() {
-		let minigame = Game.Objects['Wizard tower'].minigame;
-		if(minigame) {
-			minigame.spells['stretch time'].win = Util.replaceCode(minigame.spells['stretch time'].win, [
-				{   // Update all instances of the previous maximum time
-					// This means it'll catch Cursed Finger
-					pattern: 'me.maxTime+=gain;',
-					replacement: `
-					let timePattern = RegExp(Game.sayTime(me.maxTime,-1), 'g');
-					me.desc = me.desc.replace(timePattern, Game.sayTime(me.maxTime + gain,-1));
-					$&`
-				}
-			]);
+		let grimoire = Game.Objects['Wizard tower'].minigame;
+		if(grimoire) {
+			grimoire.spells['stretch time'].win = Cppkies.injectCode(grimoire.spells['stretch time'].win,
+				// Update all instances of the previous maximum time
+				// This means it'll catch Cursed Finger
+				'me.maxTime+=gain;',
+				`let timePattern = RegExp(Game.sayTime(me.maxTime,-1), 'g');
+				me.desc = me.desc.replace(timePattern, Game.sayTime(me.maxTime + gain,-1));\n`,
+				'before'
+			);
 			clearInterval(patchGrimoire);
 		}
 	}, 250);
@@ -392,60 +405,57 @@ export let miscGrandmaFixes = new Patch(function() {
 			Game.Objects['Grandma'].redraw();
 		}
 	} else {
-		scriptGrannies.buyFunction = Util.replaceCode(scriptGrannies.buyFunction, [
-			{   // CCSE injects a buy function into every upgrade for mod hooks
-				pattern: '{',
-				replacement: `$&\nGame.Objects['Grandma'].redraw();`
-			}
-		]);
+		scriptGrannies.buyFunction = Cppkies.injectCode(scriptGrannies.buyFunction,
+			// CCSE injects a buy function into every upgrade for mod hooks
+			null,
+			`Game.Objects['Grandma'].redraw();`,
+			'before'
+		);
 	}
 
 	// Fix Portals and Grandmas not reporting their synergy status
-	Game.Objects['Portal'].tooltip = Util.replaceCode(Game.Objects['Portal'].tooltip, [
-		{
-			pattern: `synergiesWith[other.plural]+=boost/(other.storedTotalCps*Game.globalCpsMult);`,
-			replacement: `synergiesWith[other.plural] += (me.amount * 0.05)/other.baseCps;`
+	Game.Objects['Portal'].tooltip = Cppkies.injectCode(Game.Objects['Portal'].tooltip,
+		`synergiesWith[other.plural]+=boost/(other.storedTotalCps*Game.globalCpsMult);`,
+		`synergiesWith[other.plural]+=(me.amount*0.05)/other.baseCps;`,
+		'replace'
+	)
+	Game.Objects['Grandma'].tooltip = Cppkies.injectCode(Game.Objects['Grandma'].tooltip,
+		`for (var i in Game.GrandmaSynergies)`,
+		`let selfBoost = 0;
+		if(Game.Has('One mind')) selfBoost += (me.amount * 0.02)/me.baseCps;
+		if(Game.Has('Communal brainsweep')) selfBoost += (me.amount * 0.02)/me.baseCps;
+		if(selfBoost > 0) {
+			if(!synergiesWith[me.plural]) synergiesWith[me.plural] = 0;
+			synergiesWith[me.plural] += selfBoost;
 		}
-	])
-	Game.Objects['Grandma'].tooltip = Util.replaceCode(Game.Objects['Grandma'].tooltip, [
-		{
-			pattern: `for (var i in Game.GrandmaSynergies)`,
-			replacement: `let selfBoost = 0;
-				if(Game.Has('One mind')) selfBoost += (me.amount * 0.02)/me.baseCps;
-				if(Game.Has('Communal brainsweep')) selfBoost += (me.amount * 0.02)/me.baseCps;
-				if(!synergiesWith[me.plural]) synergiesWith[me.plural] = 0;
-				synergyBoost += selfBoost;
-				synergiesWith[me.plural] += selfBoost;
-			$&`
-		}
-	])
+		synergyBoost += selfBoost;\n`,
+		'before'
+	)
 })
 
 /** Adds support for Tech and Seasonal upgrade categories */
 export let statsUpgradeCategories = new Patch(function() {
-	Game.UpdateMenu = Util.replaceCode(Game.UpdateMenu, [
-		{   // Declare techUpgrades var
-			pattern: 'var cookieUpgrades=\'\';',
-			replacement: `$&
-				var techUpgrades = '';
-				var seasonalUpgrades = '';
-			`
-		},
-		{   // Redirect tech/seasonal upgrades to the new accumulator string
-			pattern: 'else if (me.pool==\'cookie\'',
-			replacement: `else if (OmniCookies.settings.separateTechs && me.pool == \'tech\') techUpgrades+=str2;
-				else if(OmniCookies.settings.separateSeasons && me.unlockAt && (me.unlockAt.season || me.unlockAt.displaySeason)) seasonalUpgrades+=str2;
-			$&`
-		},
-		{   // Display the new category
-			pattern: `cookieUpgrades+'</div>'):'')+`,
-			replacement: `$&
-				(techUpgrades!=''?('<div class="listing"><b>Technologies</b></div>'+
-				'<div class="listing crateBox">'+techUpgrades+'</div>'):'')+
-				(seasonalUpgrades!=''?('<div class="listing"><b>Seasonal</b></div>'+
-				'<div class="listing crateBox">'+seasonalUpgrades+'</div>'):'')+
-			`
-		}
+	Game.UpdateMenu = Cppkies.injectCodes(Game.UpdateMenu, [
+		[   // Declare techUpgrades var
+			'var cookieUpgrades=\'\';',
+			`\nvar techUpgrades = '';
+			var seasonalUpgrades = '';`,
+			'after'
+		],
+		[   // Redirect tech/seasonal upgrades to the new accumulator string
+			'else if (me.pool==\'cookie\'',
+			`else if (OmniCookies.settings.separateTechs && me.pool == \'tech\') techUpgrades+=str2;
+			else if(OmniCookies.settings.separateSeasons && me.unlockAt && (me.unlockAt.season || me.unlockAt.displaySeason)) seasonalUpgrades+=str2;\n`,
+			'before'
+		],
+		[   // Display the new category
+			`cookieUpgrades+'</div>'):'')+`,
+			`(techUpgrades!=''?('<div class="listing"><b>Technologies</b></div>'+
+			'<div class="listing crateBox">'+techUpgrades+'</div>'):'')+
+			(seasonalUpgrades!=''?('<div class="listing"><b>Seasonal</b></div>'+
+			'<div class="listing crateBox">'+seasonalUpgrades+'</div>'):'')+`,
+			'after'
+		]
 	]);
 })
 
@@ -455,30 +465,32 @@ export let displaySeasonUnlock = new Patch(function() {
 	allSanta.push('A festive hat');
 	allSanta.push('Santa\'s dominion');
 
-	Game.crateTooltip = Util.replaceCode(Game.crateTooltip, [
-		{   // Oh god why
-			pattern: `\tmysterious=0`,
-			replacement: `\tvar $&`
-		},
-		{	// Uncomments unlockAt.season
-			pattern: /(\/\*|\*\/)/g,
-			replacement: ''
-		},
-		{
-			pattern: `else if (me.unlockAt.season)`,
-			replacement: `else if (OmniCookies.settings.displaySeasons && me.unlockAt.season)`
-		},
-		{   // Implements a cosmetic season unlockAt
-			pattern: 'else if (me.unlockAt.text)',
-			replacement: `
-				else if (OmniCookies.settings.displaySeasons && me.unlockAt.displaySeason)
-				{
-					var it=Game.seasons[me.unlockAt.displaySeason];
-					desc='<div style="font-size:80%;text-align:center;">From <div class="icon" style="vertical-align:middle;display:inline-block;'+(Game.Upgrades[it.trigger].icon[2]?'background-image:url('+Game.Upgrades[it.trigger].icon[2]+');':'')+'background-position:'+(-Game.Upgrades[it.trigger].icon[0]*48)+'px '+(-Game.Upgrades[it.trigger].icon[1]*48)+'px;transform:scale(0.5);margin:-16px;"></div> '+it.name+'</div><div class="line"></div>'+desc;
-				}
-			$&`
-		}
-	]);
+	Game.crateTooltip = Cppkies.injectCodes(Game.crateTooltip, [
+		/*[   // Oh god why
+			`mysterious=0`,
+			`\tlet `,
+			'before'
+		],*/
+		[	// Uncomments unlockAt.season
+			/(\/\*|\*\/)/g,
+			'',
+			'replace'
+		],
+		[
+			`else if (me.unlockAt.season`,
+			` && me.unlockAt.season`,
+			'after'
+		],
+		[   // Implements a cosmetic season unlockAt
+			'else if (me.unlockAt.text)',
+			`else if (OmniCookies.settings.displaySeasons && me.unlockAt.displaySeason)
+			{
+				var it=Game.seasons[me.unlockAt.displaySeason];
+				desc='<div style="font-size:80%;text-align:center;">From <div class="icon" style="vertical-align:middle;display:inline-block;'+(Game.Upgrades[it.trigger].icon[2]?'background-image:url('+Game.Upgrades[it.trigger].icon[2]+');':'')+'background-position:'+(-Game.Upgrades[it.trigger].icon[0]*48)+'px '+(-Game.Upgrades[it.trigger].icon[1]*48)+'px;transform:scale(0.5);margin:-16px;"></div> '+it.name+'</div><div class="line"></div>'+desc;
+			}\n`,
+			'before'
+		]
+	], { mysterious: 0 });
 
 	interface UnlockDisplaySeason extends Game.UnlockRequirement {
 		displaySeason: string
@@ -504,12 +516,12 @@ export let displaySeasonUnlock = new Patch(function() {
 
 /** Allows disabling the Skruuia wrinkler popping bonus */
 export let skruuiaRebalance = new Patch(function() {
-	Game.UpdateWrinklers = Util.replaceCode(Game.UpdateWrinklers, [
-		{
-			pattern: /(var godLvl=)(Game\.hasGod\('scorn'\))(;\s*if \(godLvl==1\) me\.sucked\*=1\.15;)/m,
-			replacement: `$1OmniCookies.settings.skruuiaRebalance ? 0 : $2$3`
-		}
-	]);
+	Game.UpdateWrinklers = Cppkies.injectCode(Game.UpdateWrinklers,
+		/(var godLvl=)(Game\.hasGod\('scorn'\))(;\s*if \(godLvl==1\) me\.sucked\*=1\.15;)/m,
+		`$1OmniCookies.settings.skruuiaRebalance ? 0 : $2$3`,
+		'replace',
+		{ inRect: Util.inRect }
+	);
 })
 
 /**
@@ -522,15 +534,17 @@ export let cursedFingerTweaks = new Patch(function() {
 	vars.cursedPsMult = Game.globalCpsMult;
 
 	let cursedFinger = Game.buffTypesByName['cursed finger'];
-	cursedFinger.func = Util.replaceCode(cursedFinger.func, [
-		{   // Remove multiply by 0 - don't worry, just moving it
-			pattern: `multCpS:0,`,
-			replacement: `multCpS:1,`
-		},
-		{   // Small description edit
-			pattern: `<br>but each click is worth `,
-			replacement: `<br>but each click generates `
-		}
+	cursedFinger.func = Cppkies.injectCodes(cursedFinger.func, [
+		[   // Remove multiply by 0 - don't worry, just moving it
+			`multCpS:0,`,
+			`multCpS:1,`,
+			'replace'
+		],
+		[   // Small description edit
+			`<br>but each click is worth `,
+			`<br>but each click generates `,
+			'replace'
+		]
 	]);
 
 	cursedFingerPart2.apply();
@@ -545,15 +559,17 @@ export let cursedFingerTweaks = new Patch(function() {
 }, function() {
 	// Inverse of the original patch
 	let cursedFinger = Game.buffTypesByName['cursed finger'];
-	cursedFinger.func = Util.replaceCode(cursedFinger.func, [
-		{
-			pattern: `multCpS:1,`,
-			replacement: `multCpS:0,`
-		},
-		{
-			pattern: `<br>but each click generates `,
-			replacement: `<br>but each click is worth `
-		}
+	cursedFinger.func = Cppkies.injectCodes(cursedFinger.func, [
+		[
+			`multCpS:1,`,
+			`multCpS:0,`,
+			'replace'
+		],
+		[
+			`<br>but each click generates `,
+			`<br>but each click is worth `,
+			'replace'
+		]
 	]);
 
 	// Put the x0 multiplier back, update buff power, fix desc
@@ -568,95 +584,89 @@ export let cursedFingerTweaks = new Patch(function() {
 
 /** One-time patches for Cursed Finger, not undo-able */
 let cursedFingerPart2 = new Patch(function() {
-	Game.CalculateGains = Util.replaceCode(Game.CalculateGains, [
-		{   // See? Told you.
-			pattern: `Game.computedMouseCps=Game.mouseCps();`,
-			replacement: `$&
-				if(OmniCookies.settings.cursedFinger && Game.hasBuff('Cursed finger')) {
-					OmniCookies.vars.cursedPs = Game.cookiesPs;
-					OmniCookies.vars.cursedPsMult = Game.globalCpsMult;
-					Game.globalCpsMult = 0;
-					Game.cookiesPs = 0;
-					Game.computedMouseCps = 0;
-				}`
-		}
-	]);
+	Game.CalculateGains = Cppkies.injectCode(Game.CalculateGains,
+		// See? Told you.
+		`Game.computedMouseCps=Game.mouseCps();`,
+		`\nif(OmniCookies.settings.cursedFinger && Game.hasBuff('Cursed finger')) {
+			OmniCookies.vars.cursedPs = Game.cookiesPs;
+			OmniCookies.vars.cursedPsMult = Game.globalCpsMult;
+			Game.globalCpsMult = 0;
+			Game.cookiesPs = 0;
+			Game.computedMouseCps = 0;
+		}`,
+		'after'
+	);
 
 	// Inject into and then replace the cookie click event
 	let bigCookie = document.getElementById('bigCookie');
 	bigCookie.removeEventListener('click', (Game.ClickCookie as EventListener));
-	Game.ClickCookie = Util.replaceCode(Game.ClickCookie, [
-		{   // Replace click gains with cursed gains
-			pattern: `Game.handmadeCookies+=amount;`,
-			replacement: `$&
-				if(OmniCookies.settings.cursedFinger && Game.hasBuff('Cursed finger')) {
-					Game.Dissolve(amount);
-					Game.handmadeCookies-=amount;
-					amount = OmniCookies.vars.cursedPs * Game.buffs['Cursed finger'].maxTime/Game.fps;
-					Game.cookiesPs = OmniCookies.vars.cursedPs;
-					Game.globalCpsMult = OmniCookies.vars.cursedPsMult;
-					OmniCookies.Util.gainInstantPassiveCpS(Game.buffs['Cursed finger'].maxTime/Game.fps);
-					Game.cookiesPs = 0;
-					Game.globalCpsMult = 0;
-				}`
-		}
-	]);
+	Game.ClickCookie = Cppkies.injectCode(Game.ClickCookie,
+		// Replace click gains with cursed gains
+		`Game.handmadeCookies+=amount;`,
+		`\nif(OmniCookies.settings.cursedFinger && Game.hasBuff('Cursed finger')) {
+			Game.Dissolve(amount);
+			Game.handmadeCookies-=amount;
+			amount = OmniCookies.vars.cursedPs * Game.buffs['Cursed finger'].maxTime/Game.fps;
+			Game.cookiesPs = OmniCookies.vars.cursedPs;
+			Game.globalCpsMult = OmniCookies.vars.cursedPsMult;
+			OmniCookies.Util.gainInstantPassiveCpS(Game.buffs['Cursed finger'].maxTime/Game.fps);
+			Game.cookiesPs = 0;
+			Game.globalCpsMult = 0;
+		}`,
+		'after'
+	);
 	AddEvent(bigCookie, 'click', (Game.ClickCookie as EventListener));
 })
 
 /** Enable tooltip wobbling */
 export let tooltipWobble = new Patch(function() {
-	Game.tooltip.wobble = Util.replaceCode(Game.tooltip.wobble, [
-		{
-			pattern: `if (false)`,
-			replacement: `if (OmniCookies.settings.tooltipWobble)`
-		}
-	]);
+	Game.tooltip.wobble = Cppkies.injectCode(Game.tooltip.wobble,
+		`if (false)`,
+		`if (OmniCookies.settings.tooltipWobble)`,
+		'replace'
+	);
 })
 
 /** Replaces cyclius gain function with our own */
 export let cycliusGains = new Patch(function() {
-	Game.CalculateGains = Util.replaceCode(Game.CalculateGains, [
-		{
-			pattern: /\(Date\.now\(\)\/1000\/\(60\*60\*(\d+)\)\)\*Math\.PI\*2/g,
-			replacement: 'OmniCookies.Util.cycliusCalc($1, OmniCookies.settings.zonedCyclius)'
-		}
-	]);
+	Game.CalculateGains = Cppkies.injectCode(Game.CalculateGains,
+		/\(Date\.now\(\)\/1000\/\(60\*60\*(\d+)\)\)\*Math\.PI\*2/g,
+		'OmniCookies.Util.cycliusCalc($1, OmniCookies.settings.zonedCyclius)',
+		'replace'
+	);
 })
 
 /** Displays information about how much you bought your stocks for */
 export let stockInfo = new Patch(function() {
 	Util.onMinigameLoaded('Bank', function() {
 		let stockMarket = Game.Objects['Bank'].minigame;
-		stockMarket.buyGood = Util.replaceCode(stockMarket.buyGood, [
-			{   // Calculate new average when buying stock
-				pattern: 'return true;',
-				replacement: `
-					let realCostInS = costInS * overhead;
-					if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
-						OmniCookies.saveData.stockAverages[id] = {
-							avgValue: realCostInS,
-							totalValue: realCostInS*n
-						};
-					} else {
-						let avg = OmniCookies.saveData.stockAverages[id];
-						avg.totalValue += realCostInS*n;
-						avg.avgValue = avg.totalValue/me.stock;
-					}
-				$&`
-			}
-		], `var M = Game.Objects['Bank'].minigame;`);
-		stockMarket.sellGood = Util.replaceCode(stockMarket.sellGood, [
-			{   // Subtract total bought stock value when selling
-				pattern: `return true;`,
-				replacement: `
-					if(OmniCookies.saveData.stockAverages[id]) {
-						let avg = OmniCookies.saveData.stockAverages[id];
-						avg.totalValue -= avg.avgValue*n;
-					}
-				$&`
-			}
-		], `var M = Game.Objects['Bank'].minigame;`);
+		stockMarket.buyGood = Cppkies.injectCode(stockMarket.buyGood,
+			// Calculate new average when buying stock
+			'return true;',
+			`let realCostInS = costInS * overhead;
+			if(!OmniCookies.saveData.stockAverages[id] || me.stock == n) {
+				OmniCookies.saveData.stockAverages[id] = {
+					avgValue: realCostInS,
+					totalValue: realCostInS*n
+				};
+			} else {
+				let avg = OmniCookies.saveData.stockAverages[id];
+				avg.totalValue += realCostInS*n;
+				avg.avgValue = avg.totalValue/me.stock;
+			}\n`,
+			'before',
+			{ M: stockMarket }
+		);
+		stockMarket.sellGood = Cppkies.injectCode(stockMarket.sellGood,
+			// Subtract total bought stock value when selling
+			`return true;`,
+			`if(OmniCookies.saveData.stockAverages[id]) {
+				let avg = OmniCookies.saveData.stockAverages[id];
+				avg.totalValue -= avg.avgValue*n;
+			}\n`,
+			'before',
+			{ M: stockMarket }
+		);
 		/*stockMarket.goodTooltip = OmniCookies.replaceCode(stockMarket.goodTooltip, [
 			{   // Shows the current total bought value on the tooltip
 				// Disabled for now due to ugly text wrapping
@@ -664,107 +674,89 @@ export let stockInfo = new Patch(function() {
 				replacement: `$&, bought for <b>$$'+Beautify(OmniCookies.saveData.stockAverages[id] ? OmniCookies.saveData.stockAverages[id].totalValue : 0, 2)+'</b>`
 			}
 		]), `var M = Game.Objects['Bank'].minigame;`;*/
-		stockMarket.drawGraph = Util.replaceCode(stockMarket.drawGraph, [
-			{   // Draw line for profit threshold
-				pattern: /}$/,
-				replacement: `
-					if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
-						let me = M.goodsById[M.hoverOnGood];
-						if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
-							ctx.strokeStyle='#00ff00'; // green
-							ctx.beginPath();
-							let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
-							ctx.moveTo(width-1, lineHeight);
-							ctx.lineTo(width-span*rows-1, lineHeight);
-							ctx.stroke();
-						}
-					}
-				$&`
-			}
-		], `var M = Game.Objects['Bank'].minigame;`);
-		stockMarket.draw = Util.replaceCode(stockMarket.draw, [
-			{   // Add a new display for the average bought value
-				pattern: `//if (me.stock>0) me.stockL.style.color='#fff';`,
-				replacement: `
-					if(OmniCookies.settings.stockValueData) {
-						if(!me.avgL) {
-							let avgSpan = document.createElement('span');
-							avgSpan.id = 'bankGood-'+me.id+'-avg';
-							avgSpan.innerHTML = '(-)';
-							document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
-							me.avgL = avgSpan;
-						}
-						
-						if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
-							me.avgL.style.visibility = 'visible';
-							let avg = OmniCookies.saveData.stockAverages[me.id];
-							me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
-							if(avg.avgValue < me.val) {
-								me.avgL.classList.remove('red');
-								me.avgL.classList.add('green');
-							} else {
-								me.avgL.classList.remove('green');
-								me.avgL.classList.add('red');
-							}
-						} else {
-							me.avgL.style.visibility = 'hidden';
-							me.avgL.innerHTML = '';
-						}
+		stockMarket.drawGraph = Cppkies.injectCode(stockMarket.drawGraph,
+			// Draw line for profit threshold
+			null,
+			`if(OmniCookies.settings.stockValueData && M.hoverOnGood != -1) {
+				let me = M.goodsById[M.hoverOnGood];
+				if(me.stock > 0 && OmniCookies.saveData.stockAverages[M.hoverOnGood]) {
+					ctx.strokeStyle='#00ff00'; // green
+					ctx.beginPath();
+					let lineHeight = Math.floor(height-OmniCookies.saveData.stockAverages[M.hoverOnGood].avgValue*M.graphScale)+0.5;
+					ctx.moveTo(width-1, lineHeight);
+					ctx.lineTo(width-span*rows-1, lineHeight);
+					ctx.stroke();
+				}
+			}`,
+			'after',
+			{ M: stockMarket }
+		);
+		stockMarket.draw = Cppkies.injectCode(stockMarket.draw,
+			// Add a new display for the average bought value
+			`//if (me.stock>0) me.stockL.style.color='#fff';`,
+			`if(OmniCookies.settings.stockValueData) {
+				if(!me.avgL) {
+					let avgSpan = document.createElement('span');
+					avgSpan.id = 'bankGood-'+me.id+'-avg';
+					avgSpan.innerHTML = '(-)';
+					document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
+					me.avgL = avgSpan;
+				}
+				
+				if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
+					me.avgL.style.visibility = 'visible';
+					let avg = OmniCookies.saveData.stockAverages[me.id];
+					me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
+					if(avg.avgValue < me.val) {
+						me.avgL.classList.remove('red');
+						me.avgL.classList.add('green');
 					} else {
-						if(me.avgL) {
-							me.avgL.remove();
-							me.avgL = undefined;
-						}
+						me.avgL.classList.remove('green');
+						me.avgL.classList.add('red');
 					}
-				$&`
-			}
-		], `var M = Game.Objects['Bank'].minigame;`);
+				} else {
+					me.avgL.style.visibility = 'hidden';
+					me.avgL.innerHTML = '';
+				}
+			} else {
+				if(me.avgL) {
+					me.avgL.remove();
+					me.avgL = undefined;
+				}
+			}\n`,
+			'before',
+			{ M: stockMarket }
+		);
 		stockMarket.toRedraw = 1;
 	});
 })
 
 /** Allows buildings to bypass the Fancy graphics setting */
 export let fancyBuildings = new Patch(function() {
-	Game.Draw = Util.replaceCode(Game.Draw, [
-		{
-			pattern: 'if (Game.prefs.animate && ((Game.prefs.fancy && Game.drawT%1==0)',
-			replacement: 'if (Game.prefs.animate && ((((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy == 0) && OmniCookies.settings.buildingsBypassFancy != 1) && Game.drawT%1==0)'
-		}
-	]);
+	Game.Draw = Cppkies.injectCode(Game.Draw,
+		'if (Game.prefs.animate && ((Game.prefs.fancy && Game.drawT%1==0)',
+		'if (Game.prefs.animate && ((((Game.prefs.fancy || OmniCookies.settings.buildingsBypassFancy == 0) && OmniCookies.settings.buildingsBypassFancy != 1) && Game.drawT%1==0)',
+		'replace'
+	);
 })
 
 /** Allows cursors to bypass the Fancy graphics setting */
 export let fancyCursors = new Patch(function() {
-	Game.DrawBackground = Util.replaceCode(Game.DrawBackground, [
-		{
-			pattern: /(var fancy=)(Game\.prefs\.fancy)(;)/,
-			replacement: '$1($2 || OmniCookies.settings.cursorsBypassFancy == 0) && OmniCookies.settings.cursorsBypassFancy != 1$3'
-		}
-	]);
+	Game.DrawBackground = Cppkies.injectCode(Game.DrawBackground, 
+		/(var fancy=)(Game\.prefs\.fancy)(;)/,
+		'$1($2 || OmniCookies.settings.cursorsBypassFancy == 0) && OmniCookies.settings.cursorsBypassFancy != 1$3',
+		'replace'
+	);
 })
 
 /** Allows wrinklers to bypass the Fancy graphics setting */
 export let fancyWrinklers = new Patch(function() {
-	// Thanks Orteil -_-
-	(window as any).inRect = function(x: number,y: number, rect: any): boolean {
-		//find out if the point x,y is in the rotated rectangle rect{w,h,r,o} (width,height,rotation in radians,y-origin) (needs to be normalized)
-		//I found this somewhere online I guess
-		let dx = x+Math.sin(-rect.r)*(-(rect.h/2-rect.o)),dy=y+Math.cos(-rect.r)*(-(rect.h/2-rect.o));
-		let h1 = Math.sqrt(dx*dx + dy*dy);
-		let currA = Math.atan2(dy,dx);
-		let newA = currA - rect.r;
-		let x2 = Math.cos(newA) * h1;
-		let y2 = Math.sin(newA) * h1;
-		if (x2 > -0.5 * rect.w && x2 < 0.5 * rect.w && y2 > -0.5 * rect.h && y2 < 0.5 * rect.h) return true;
-		return false;
-	};
-
-	Game.UpdateWrinklers = Util.replaceCode(Game.UpdateWrinklers, [
-		{
-			pattern: /Game\.prefs\.fancy/g,
-			replacement: `($& || OmniCookies.settings.wrinklersBypassFancy == 0) && OmniCookies.settings.wrinklersBypassFancy != 1`
-		}
-	]);
+	Game.UpdateWrinklers = Cppkies.injectCode(Game.UpdateWrinklers, 
+		/Game\.prefs\.fancy/g,
+		`($& || OmniCookies.settings.wrinklersBypassFancy == 0) && OmniCookies.settings.wrinklersBypassFancy != 1`,
+		'replace',
+		{ inRect: Util.inRect }
+	);
 })
 
 /** 
@@ -773,102 +765,125 @@ export let fancyWrinklers = new Patch(function() {
  * Also allows using the ALL button in buy mode.
  */
 export let buySellBulk = new Patch(function() {
-	let rebuildPattern = [
-		{
-			pattern: `l('productPriceMult'+me.id).textContent=(Game.buyBulk>1)?('x'+Game.buyBulk+' '):'';`,
-			replacement: `
-				if(OmniCookies.settings.enhancedBulk) {
-					let bulkAmount = -1;
-					let bulkPrice = -1;
-					if(Game.buyMode == -1) {
-						bulkAmount = (Game.buyBulk > -1) ? Math.min(Game.buyBulk, me.amount) : me.amount;
-					} else {
-						let bulk = OmniCookies.Util.calcMaxBuyBulk(me, Game.buyBulk);
-						bulkAmount = bulk.maxAmount;
-						bulkPrice = bulk.maxPrice;
-					}
-					l('productPriceMult'+me.id).textContent = bulkAmount > 1 ? 'x' + bulkAmount + ' ' : '';
+	let rebuildPattern: InjectParams[] = [
+		[
+			`l('productPriceMult'+me.id).textContent=(Game.buyBulk>1)?('x'+Game.buyBulk+' '):'';`,
+			`if(OmniCookies.settings.enhancedBulk) {
+				let bulkAmount = -1;
+				let bulkPrice = -1;
+				if(Game.buyMode == -1) {
+					bulkAmount = (Game.buyBulk > -1) ? Math.min(Game.buyBulk, me.amount) : me.amount;
 				} else {
-					$&
+					let scaling = Game.priceIncrease;
+					if(OmniCookies.settings.buildingPriceBuff) {
+						scaling = 1+Game.modifyBuildingPrice(me, scaling-1);
+					}
+					let bulk = OmniCookies.Util.calcMaxBuyBulk(me, Game.buyBulk, scaling);
+					bulkAmount = bulk.maxAmount;
+					bulkPrice = bulk.maxPrice;
 				}
-			`
-		}
+				l('productPriceMult'+me.id).textContent = bulkAmount > 1 ? 'x' + bulkAmount + ' ' : '';
+			} else {
+				$&
+			}`,
+			'replace'
+		]
 	];
-	let refreshPattern = [
-		{   // Set bulk buy price to maximum bulk price
-			pattern: `if (Game.buyMode==1) this.bulkPrice=this.getSumPrice(Game.buyBulk);`,
-			replacement: `if (Game.buyMode==1) {
+	let refreshPattern: InjectParams[] = [
+		[   // Set bulk buy price to maximum bulk price
+			`if (Game.buyMode==1) this.bulkPrice=this.getSumPrice(Game.buyBulk);`,
+			`if (Game.buyMode==1) {
 				if(OmniCookies.settings.enhancedBulk) {
-					let bulk = OmniCookies.Util.calcMaxBuyBulk(this,Game.buyBulk);
+					let scaling = Game.priceIncrease;
+					if(OmniCookies.settings.buildingPriceBuff) {
+						scaling = 1+Game.modifyBuildingPrice(this, scaling-1);
+					}
+					let bulk = OmniCookies.Util.calcMaxBuyBulk(this,Game.buyBulk,scaling);
 					this.bulkPrice = bulk.maxPrice > 0 ? bulk.maxPrice : this.price;
 				} else {
 					this.bulkPrice=this.getSumPrice(Game.buyBulk);
 				}
-			}`
-		},
-		{   // Sell ALL buildings, not only up to 1000
-			pattern: `else if (Game.buyMode==-1 && Game.buyBulk==-1) this.bulkPrice=this.getReverseSumPrice(1000);`,
-			replacement: `else if (Game.buyMode==-1 && Game.buyBulk==-1) this.bulkPrice=this.getReverseSumPrice(OmniCookies.settings.enhancedBulk ? this.amount : 1000);`
-		}
+			}`,
+			'replace'
+		],
+		[   // Sell ALL buildings, not only up to 1000
+			`else if (Game.buyMode==-1 && Game.buyBulk==-1) this.bulkPrice=this.getReverseSumPrice(`,
+			`OmniCookies.settings.enhancedBulk ? this.amount : `,
+			'after'
+		]
+	];
+	let buyPattern: InjectParams[] = [
+		[   // Allow ALL to mean ALL, rather than 1000
+			`if (amount==-1) amount=1000;`,
+			`if (amount==-1) amount=Infinity;`,
+			'replace'
+		],
+		[   // Stop looping when we can't afford stuff
+			/success=1;\s*}/,
+			`$& else break;`,
+			'replace'
+		]
 	];
 
 	for(let i in Game.Objects) {
 		let building = Game.Objects[i];
 
-		building.rebuild = Util.replaceCode(building.rebuild, rebuildPattern);
-		building.refresh = Util.replaceCode(building.refresh, refreshPattern);
+		building.rebuild = Cppkies.injectCodes(building.rebuild, rebuildPattern);
+		building.refresh = Cppkies.injectCodes(building.refresh, refreshPattern);
+		building.buy = Cppkies.injectCodes(building.buy, buyPattern);
 	}
 
-	Game.Object = Util.replaceCode(Game.Object, rebuildPattern);
-	Game.Object = Util.replaceCode(Game.Object, refreshPattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, rebuildPattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, refreshPattern);
+	Game.Object = Cppkies.injectCodes(Game.Object, buyPattern);
 
-	Game.storeBulkButton = Util.replaceCode(Game.storeBulkButton, [
-		{   // Allow using max button in buy mode
-			pattern: `if (Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`,
-			replacement: `
-				if(id == 0 || id == 1) {
-					let text = 'all';
-					if(OmniCookies.settings.enhancedBulk) {
-						if(Game.buyMode == -1) text = 'ALL';
-						else text = 'MAX';
-					}
-					l('storeBulkMax').textContent = text;
+	Game.storeBulkButton = Cppkies.injectCodes(Game.storeBulkButton, [
+		[   // Allow using max button in buy mode
+			`if (Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`,
+			`if(id == 0 || id == 1) {
+				let text = 'all';
+				if(OmniCookies.settings.enhancedBulk) {
+					if(Game.buyMode == -1) text = 'ALL';
+					else text = 'MAX';
 				}
-				if (!OmniCookies.settings.enhancedBulk && Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`
-		},
-		{   // Max button is always visible
-			pattern: `l('storeBulkMax').style.visibility='hidden';`,
-			replacement: `if(!OmniCookies.settings.enhancedBulk) $&`
-		}
+				l('storeBulkMax').textContent = text;
+			}
+			if (!OmniCookies.settings.enhancedBulk && Game.buyMode==1 && Game.buyBulk==-1) Game.buyBulk=100;`,
+			'replace'
+		],
+		[   // Max button is always visible
+			`l('storeBulkMax').style.visibility='hidden';`,
+			`if(!OmniCookies.settings.enhancedBulk) `,
+			'before'
+		]
 	]);
 
-	Game.Logic = Util.replaceCode(Game.Logic, [
-		{   // Record the current shortcut
-			pattern: `if (!Game.promptOn)`,
-			replacement: `
-				let activeShortcut = (OmniCookies.Util.holdingButton(16)*2) | (OmniCookies.Util.holdingButton(17));
-			$&`
-		},
-		{   // Always cause a setting update if there is a change in shortcut
-			pattern: `if ((Game.keys[16] || Game.keys[17]) && !Game.buyBulkShortcut)`,
-			replacement: `if (activeShortcut != OmniCookies.vars.prevShortcut && (OmniCookies.settings.enhancedBulk ? true : activeShortcut == 2 || activeShortcut == 1))`
-		},
-		{   // Only set Game.buyBulkOld when previously not holding either key
-			pattern: `Game.buyBulkOld=Game.buyBulk;`,
-			replacement: `if(OmniCookies.vars.prevShortcut == 0) Game.buyBulkOld=Game.buyBulk;`
-		},
-		{   // If holding both keys, switch to MAX/ALL
-			pattern: `if (Game.keys[17]) Game.buyBulk=10;`,
-			replacement: `$&
-				if(activeShortcut == 3 && OmniCookies.settings.enhancedBulk) Game.buyBulk = -1;
-			`
-		},
-		{   // Record state
-			pattern: `//handle cookies`,
-			replacement: `
-				OmniCookies.vars.prevShortcut = activeShortcut;
-			$&`
-		}
+	Game.Logic = Cppkies.injectCodes(Game.Logic, [
+		[   // Record the current shortcut
+			`if (!Game.promptOn)`,
+			`let activeShortcut = (OmniCookies.Util.holdingButton(16)*2) | (OmniCookies.Util.holdingButton(17));\n`,
+			'before'
+		],
+		[   // Always cause a setting update if there is a change in shortcut
+			`if ((Game.keys[16] || Game.keys[17]) && !Game.buyBulkShortcut)`,
+			`if (activeShortcut != OmniCookies.vars.prevShortcut && (OmniCookies.settings.enhancedBulk ? true : activeShortcut == 2 || activeShortcut == 1))`,
+			'replace'
+		],
+		[   // Only set Game.buyBulkOld when previously not holding either key
+			`Game.buyBulkOld=Game.buyBulk;`,
+			`if(OmniCookies.vars.prevShortcut == 0) `,
+			'before'
+		],
+		[   // If holding both keys, switch to MAX/ALL
+			`if (Game.keys[17]) Game.buyBulk=10;`,
+			`if(activeShortcut == 3 && OmniCookies.settings.enhancedBulk) Game.buyBulk = -1;`,
+			'after'
+		],
+		[   // Record state
+			`//handle cookies`,
+			`OmniCookies.vars.prevShortcut = activeShortcut;\n`,
+			'before'
+		]
 	])
 	
 	updateBulkAll();
@@ -896,28 +911,29 @@ export let updateBulkAll = function() {
 export let dangerousStocks = new Patch(function() {
 	Util.onMinigameLoaded('Bank', function() {
 		let stockMarket = Game.Objects['Bank'].minigame;
-		stockMarket.buyGood = Util.replaceCode(stockMarket.buyGood, [
-			{   // Use Dissolve instead of Spend (to withhold cookies earned)
-				pattern: `Game.Spend(cost*n);`,
-				replacement: `
-					if(OmniCookies.settings.dangerousStocks) {
-						Game.Dissolve(cost*n);
-					} else {
-						$&
-					}
-				`
-			}
-		], `let M = Game.Objects['Bank'].minigame;`);
-		stockMarket.sellGood = Util.replaceCode(stockMarket.sellGood, [
-			{   // Start using Game.Earn again (to reinstate cookies earned)
-				pattern: '//Game.Earn',
-				replacement: `if(OmniCookies.settings.dangerousStocks) Game.Earn`
-			},
-			{   // Stop using direct setting
-				pattern: /\tGame\.cookies/gm,
-				replacement: `if(!OmniCookies.settings.dangerousStocks) $&`
-			}
-		], `let M = Game.Objects['Bank'].minigame;`);
+		stockMarket.buyGood = Cppkies.injectCode(stockMarket.buyGood,
+			// Use Dissolve instead of Spend (to withhold cookies earned)
+			`Game.Spend(cost*n);`,
+			`if(OmniCookies.settings.dangerousStocks) {
+				Game.Dissolve(cost*n);
+			} else {
+				$&
+			}`,
+			'replace',
+			{ M: stockMarket }
+		);
+		stockMarket.sellGood = Cppkies.injectCodes(stockMarket.sellGood, [
+			[   // Start using Game.Earn again (to reinstate cookies earned)
+				'//Game.Earn',
+				`if(OmniCookies.settings.dangerousStocks) Game.Earn`,
+				'replace'
+			],
+			[   // Stop using direct setting
+				/\tGame\.cookies/gm,
+				`if(!OmniCookies.settings.dangerousStocks) $&`,
+				'replace'
+			]
+		], { M: stockMarket });
 	});
 })
 
@@ -925,16 +941,16 @@ export let dangerousStocks = new Patch(function() {
 export let cycliusInfo = new Patch(function() {
 	Util.onMinigameLoaded('Temple', function() {
 		let pantheon = Game.Objects['Temple'].minigame;
-		let functionPattern = [
-			{   // Allow functions to be used as descriptions
-				pattern: /\+me\.desc(\w+)\+/g,
-				replacement: `+((typeof me.desc$1 == 'function') ? me.desc$1() : me.desc$1)+`
-			}
+		let functionPattern: InjectParams = [
+			// Allow functions to be used as descriptions
+			/\+me\.desc(\w+)\+/g,
+			`+((typeof me.desc$1 == 'function') ? me.desc$1() : me.desc$1)+`,
+			'replace'
 		];
-		pantheon.godTooltip = Util.replaceCode(pantheon.godTooltip, 
-			functionPattern, `let M = Game.Objects['Temple'].minigame;`);
-		pantheon.slotTooltip = Util.replaceCode(pantheon.slotTooltip, 
-			functionPattern, `let M = Game.Objects['Temple'].minigame;`);
+		pantheon.godTooltip = Cppkies.injectCode(pantheon.godTooltip, 
+			...functionPattern, { M: pantheon });
+		pantheon.slotTooltip = Cppkies.injectCode(pantheon.slotTooltip, 
+			...functionPattern, { M: pantheon });
 
 		// Display Cyclius values
 		let cycliusFunc = function(interval: number): () => string {
@@ -981,20 +997,21 @@ export let toggleCyclius = function() {
 /** Miscellaneous performance enhancements */
 export let optiCookies = new Patch(function() {
 	// fix forcing a store refresh every 5 draw frames if player has zero and non-zero switches
-	Game.Draw = Util.replaceCode(Game.Draw, [
-		{
-			pattern: `if (price<lastPrice) Game.storeToRefresh=1;`,
-			replacement: `if (price<lastPrice && price!=0) Game.upgradesToRebuild=1;`
-		}
-	]);
+	Game.Draw = Cppkies.injectCode(Game.Draw,
+		`if (price<lastPrice) Game.storeToRefresh=1;`,
+		`if (price<lastPrice && price!=0) Game.upgradesToRebuild=1;`,
+		'replace'
+	);
 
 	// use fast calc instead of loop calc
 	for(let obj of Game.ObjectsById) {
 		obj.getSumPrice=function(amount) {
-			return Util.quickCalcBulkPrice(this, amount);
+			let price = Util.quickCalcBulkPrice(this, amount);
+			return price;
 		}
 		obj.getReverseSumPrice=function(amount) {
-			return Util.quickCalcBulkPrice(this, amount, true);
+			let price = Util.quickCalcBulkPrice(this, amount, undefined, true);
+			return price;
 		}
 	}
 })
@@ -1028,4 +1045,71 @@ export let dangerousBrokers = new Patch(function() {
 		brokerButton.remove();
 		parent.appendChild(newButton);
 	})
+})
+
+/**
+ * Allows certain prestige upgrades to act like cookie upgrades.  
+ * This makes them show the [Cookie] tag and appear as cookie particles.  
+ * Currently applies to:
+ * - Heavenly cookies
+ * - Wrinkly cookies
+ * - Sugar crystal cookies
+ * 
+ * Other mods can add such prestige cookies to `vars.prestigeCookies`.
+ */
+export let heavenlyCookies = new Patch(function() {
+	Game.crateTooltip = Cppkies.injectCode(Game.crateTooltip,
+		`if (me.tier!=0 && Game.Has('Label printer')) tags.push('Tier : '`,
+		`if(OmniCookies.settings.heavenlyCookies) {
+			if(OmniCookies.vars.prestigeCookies[me.name]) {
+				tags.push('Cookie', 0);
+			}
+		}\n`,
+		'before', 
+		{ mysterious: 0 }
+	);
+	Game.particleAdd = Cppkies.injectCode(Game.particleAdd,
+		/(if \(cookie\.bought>0 && )(cookie\.pool=='cookie')(\) cookies\.push\(cookie\.icon\);)/,
+		`$1($2 || (OmniCookies.settings.heavenlyCookies && cookie.pool == 'prestige' && Game.Has(cookie.name) && OmniCookies.vars.prestigeCookies[cookie.name]))$3`,
+		'replace'
+	);
+
+	vars.prestigeCookies['Heavenly cookies'] = true;
+	vars.prestigeCookies['Wrinkly cookies'] = true;
+	vars.prestigeCookies['Sugar crystal cookies'] = true;
+})
+
+export let buildingPriceBuff = new Patch(function() {
+	let pattern: InjectParams[] = [
+		[   // Inject a modification to Game.priceIncrease before building price calc
+			null,
+			`let oldPriceIncrease = Game.priceIncrease;
+			if(OmniCookies.settings.buildingPriceBuff) {
+				Game.priceIncrease = 1+Game.modifyBuildingPrice(this, oldPriceIncrease-1);
+				OmniCookies.vars.skipModifyPrice = true;
+			}`,
+			'before'
+		],
+		[   // Put priceIncrease back where it was after the calc
+			`return`,
+			`if(OmniCookies.settings.buildingPriceBuff) Game.priceIncrease = oldPriceIncrease;\n`,
+			'before'
+		]
+	];
+
+	for(let building of Game.ObjectsById) {
+		building.getPrice = Cppkies.injectCodes(building.getPrice, pattern);
+		building.getSumPrice = Cppkies.injectCodes(building.getSumPrice, pattern);
+		building.getReverseSumPrice = Cppkies.injectCodes(building.getReverseSumPrice, pattern);
+	}
+
+	Game.modifyBuildingPrice = Cppkies.injectCode(Game.modifyBuildingPrice,
+		// Allow skipping the price modification during this mode
+		null,
+		`if(OmniCookies.vars.skipModifyPrice) {
+			OmniCookies.vars.skipModifyPrice = false;
+			return price;
+		}`,
+		'before'
+	);
 })

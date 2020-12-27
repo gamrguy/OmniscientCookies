@@ -7,7 +7,7 @@ interface StockAverage {
 	totalValue: number
 }
 
-class SaveData {
+export class SaveData {
 	version: string
 	stockAverages: StockAverage[]
 	frozenWrinks: Game.Wrinkler[]

@@ -1,7 +1,7 @@
 export let name = 'Omniscient Cookies'
 export let version = 'v2.1.2'
 
-interface Vars {
+export interface Vars {
 	lastMilk: number
 	lastAutoMilk: any
 	buffsById: Game.Buff[]

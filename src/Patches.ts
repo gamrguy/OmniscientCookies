@@ -1002,7 +1002,7 @@ export let optiCookies = new Patch(function() {
 		`if (price<lastPrice && price!=0) Game.upgradesToRebuild=1;`,
 		'replace'
 	);
-	if(this.applied) console.log('what the fuck?!');
+	
 	// use fast calc instead of loop calc
 	for(let obj of Game.ObjectsById) {
 		obj.getSumPrice = Cppkies.injectCodes(obj.getSumPrice, [
@@ -1113,7 +1113,7 @@ export let buildingPriceBuff = new Patch(function() {
 			'before'
 		],
 		[   // Put priceIncrease back where it was after the calc
-			`return`,
+			`return Mat`,
 			`if(OmniCookies.settings.buildingPriceBuff) Game.priceIncrease = oldPriceIncrease;\n`,
 			'before'
 		]

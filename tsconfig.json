@@ -1,5 +1,7 @@
 {
+	"exclude": ["dist/*"],
 	"compilerOptions": {
-		"sourceMap": true
+		"sourceMap": true,
+		"declaration": true
 	}
 }

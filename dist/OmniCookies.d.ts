@@ -1,0 +1,20 @@
+/// <reference types="cookieclicker" />
+import * as _Logger from './Logger';
+import * as _Util from './Util';
+import * as _Config from './Config';
+import * as _Patches from './Patches';
+import * as _Vars from "./Vars";
+import * as _Routines from "./Routines";
+import * as _GrandmaSupport from "./GrandmaSupport";
+export declare let name: string;
+export declare let version: string;
+export declare let Util: typeof _Util;
+export declare let Config: typeof _Config;
+export declare let Patches: typeof _Patches;
+export declare let Logger: typeof _Logger;
+export declare let Routines: typeof _Routines;
+export declare let GrandmaSupport: typeof _GrandmaSupport;
+export declare let vars: _Vars.Vars;
+export declare let settings: import("./Settings").Settings;
+export declare let saveData: import("./SaveData").SaveData;
+export declare let mod: Game.Mod;

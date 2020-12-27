@@ -4,30 +4,39 @@ import minify from "rollup-plugin-babel-minify"
 import typescript from "rollup-plugin-typescript2"
 import resolve from "@rollup/plugin-node-resolve"
 import commonjs from "@rollup/plugin-commonjs"
+import dts from "rollup-plugin-dts"
 
-export default {
-	input: `./src/index.ts`,
-	output: {
-		file: `./dist/main.js`,
-		format: "umd",
-		sourcemap: true,
-		name: "OmniCookies"
+
+export default [
+	{
+		input: `./src/index.ts`,
+		output: {
+			file: `./dist/main.js`,
+			format: "umd",
+			sourcemap: true,
+			name: "OmniCookies"
+		},
+		plugins: [
+			typescript({
+				tsconfig: "./tsconfig.json",
+			}),
+			resolve(),
+			babel({
+				exclude: "node_modules/**",
+				sourceMaps: true,
+			}),
+			analyze({
+				summaryOnly: true,
+			}),
+			minify({
+				comments: false,
+			}),
+			commonjs(),
+		]
 	},
-	plugins: [
-		typescript({
-			tsconfig: "./tsconfig.json",
-		}),
-		resolve(),
-		babel({
-			exclude: "node_modules/**",
-			sourceMaps: true,
-		}),
-		analyze({
-			summaryOnly: true,
-		}),
-		minify({
-			comments: false,
-		}),
-		commonjs(),
-	],
-}
+	{
+		input: "./dist/index.d.ts",
+		output: [{ file: "dist/index.d.ts", format: "es" }],
+		plugins: [dts()]
+	}
+]

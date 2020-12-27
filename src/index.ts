@@ -3,11 +3,11 @@ import Cppkies from 'cppkies'
 
 declare global {
 	interface Window {
-		OmniCookies: object
+		OmniCookies: typeof OmniCookies
 	}
 }
 
-let OmniCookiesExport: any
+let OmniCookiesExport: typeof OmniCookies
 if(window.OmniCookies) {
 	OmniCookies.Logger.warn("Mod loaded twice???")
 	OmniCookiesExport = window.OmniCookies

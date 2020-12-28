@@ -730,6 +730,7 @@ export let stockInfo = new Patch(function() {
 						me.avgL.style.visibility = 'hidden';
 						me.avgL.innerHTML = '';
 					} else {
+						me.avgL.style.visibility = 'visible';
 						me.avgL.innerHTML = '$$--.--';
 					}
 					me.avgL.classList.remove('red');
@@ -1372,35 +1373,37 @@ export let alternateStockMarket = new Patch(function() {
 
 		stockMarket.draw = Cppkies.injectCode(stockMarket.draw,
 			`.vals[0]*M.graphScale))+'px) scale(0.5)';`,
-			`\nlet ownedStockBox = l('bankGood-'+me.id+'-ownedStockBox');
-			if(me.stockBoxL.classList.contains('green')) ownedStockBox.classList.add('green');
-			else ownedStockBox.classList.remove('green');
-			me.stockBoxL.classList.remove('green');
-			me.stockBoxL.innerHTML = me.stockBoxL.innerHTML.replace('/', '');
-			let profitSpan = l('bankGood-'+me.id+'-profitSym');
+			`\nif(!me.ownedStockBoxL) me.ownedStockBoxL = l('bankGood-'+me.id+'-ownedStockBox');
+			
+			if(me.stockBoxL.classList.contains('green') && !me.ownedStockBoxL.classList.contains('green')) me.ownedStockBoxL.classList.add('green');
+			else if(!me.stockBoxL.classList.contains('green') && me.ownedStockBoxL.classList.contains('green')) me.ownedStockBoxL.classList.remove('green');
+			if(me.stockBoxL.classList.contains('green')) me.stockBoxL.classList.remove('green');
+			
+			me.stockMaxL.innerHTML = me.stockMaxL.innerHTML.replace('/', '');
+			
+			if(!me.profitSpanL) me.profitSpanL = l('bankGood-'+me.id+'-profitSym');
 			if(OmniCookies.settings.stockValueData) {
-				profitSpan.style.visibility = 'visible';
+				me.profitSpanL.style.visibility = 'visible';
 				let avg = OmniCookies.saveData.stockAverages[me.id];
 				if(avg && avg.totalValue > 0) {
 					let percent = (me.val/avg.avgValue - 1) * 100;
-					console.log(percent);
-					profitSpan.innerHTML = Beautify(percent, 2) + '%';
-					profitSpan.style.paddingRight = '2px';
-					if (percent>=0) {profitSpan.classList.add('bankSymbolUp');profitSpan.classList.remove('bankSymbolDown');}
-					else if (percent<0) {profitSpan.classList.remove('bankSymbolUp');profitSpan.classList.add('bankSymbolDown');}
+					me.profitSpanL.innerHTML = Beautify(percent, 2) + '%';
+					me.profitSpanL.style.paddingRight = '2px';
+					if (percent>=0) {me.profitSpanL.classList.add('bankSymbolUp');me.profitSpanL.classList.remove('bankSymbolDown');}
+					else if (percent<0) {me.profitSpanL.classList.remove('bankSymbolUp');me.profitSpanL.classList.add('bankSymbolDown');}
 					else {
-						profitSpan.classList.remove('bankSymbolUp');
-						profitSpan.classList.remove('bankSymbolDown');
-						profitSpan.style.paddingRight = '12px';
+						me.profitSpanL.classList.remove('bankSymbolUp');
+						me.profitSpanL.classList.remove('bankSymbolDown');
+						me.profitSpanL.style.paddingRight = '12px';
 					}
 				} else {
-					profitSpan.classList.remove('bankSymbolUp');
-					profitSpan.classList.remove('bankSymbolDown');
-					profitSpan.innerHTML = '--.--%';
-					profitSpan.style.paddingRight = '12px';
+					me.profitSpanL.classList.remove('bankSymbolUp');
+					me.profitSpanL.classList.remove('bankSymbolDown');
+					me.profitSpanL.innerHTML = '--.--%';
+					me.profitSpanL.style.paddingRight = '12px';
 				}
 			} else {
-				profitSpan.style.visibility = 'hidden';
+				me.profitSpanL.style.visibility = 'hidden';
 			}`,
 			'after',
 			{ M: stockMarket }

@@ -124,9 +124,9 @@ export function loadData(data: object, into: object): void {
 			if(key in into) {
 				// convert from old boolean buttons to new optioned buttons
 				// for these buttons in particular, 0 was "on" and 2 is now "off"
-				if(typeof data[key] == 'boolean' && typeof into[key] == 'number') {
+				/*if(typeof data[key] == 'boolean' && typeof into[key] == 'number') {
 					data[key] = data[key] ? 0 : 2;
-				}
+				}*/
 				into[key] = data[key];
 			}
 		}

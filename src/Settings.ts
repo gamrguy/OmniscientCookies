@@ -109,6 +109,12 @@ export class Settings {
 	/** Exponent of 10 to aim for when the ascend meter fills */
 	//ascendMeterPrecision: number
 
+	/** Whether to fix the positioning of Timer.say for Game.Draw */
+	drawTimerFix: boolean
+
+	/** Whether to use an alternative stock market layout */
+	alternateStockMarket: boolean
+
 	/** Initializes to the default settings */
 	constructor() {
 		this.version = version;
@@ -144,6 +150,8 @@ export class Settings {
 		this.heavenlyCookies = true;
 		this.buildingPriceBuff = false;
 		//this.ascendMeterPrecision = 0;
+		this.drawTimerFix = false;
+		this.alternateStockMarket = false;
 	}
 
 	set(setting: string, value: any) {

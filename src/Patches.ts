@@ -14,13 +14,13 @@ export class Patch {
 	}
 	apply() {
 		if(this.applied) return;
-		this.patchFunc();
 		this.applied = true;
+		this.patchFunc();
 	}
 	remove() {
 		if(!this.applied || !this.removeFunc) return;
-		this.removeFunc();
 		this.applied = false;
+		this.removeFunc();
 	}
 	toggle(force?: boolean) {
 		let toState = !this.applied;
@@ -698,15 +698,26 @@ export let stockInfo = new Patch(function() {
 				if(!me.avgL) {
 					let avgSpan = document.createElement('span');
 					avgSpan.id = 'bankGood-'+me.id+'-avg';
-					avgSpan.innerHTML = '(-)';
+					avgSpan.innerHTML = '$$--.--';
 					document.getElementById('bankGood-'+me.id+'-stockBox').appendChild(avgSpan);
 					me.avgL = avgSpan;
+				}
+
+				if(OmniCookies.settings.alternateStockMarket && (!me.avgL.parentElement || me.avgL.parentElement.id.includes('-stockBox'))) {
+					let newCell = l('bankGood-'+me.id+'-boughtValueBox');
+					if(newCell) {
+						me.avgL.style.marginLeft = '4px';
+						newCell.appendChild(me.avgL);
+					}
 				}
 				
 				if(OmniCookies.saveData.stockAverages[me.id] && me.stock > 0) {
 					me.avgL.style.visibility = 'visible';
 					let avg = OmniCookies.saveData.stockAverages[me.id];
-					me.avgL.innerHTML = ' ($$'+Beautify(avg.avgValue,2)+')';
+					me.avgL.innerHTML = '$$'+Beautify(avg.avgValue,2);
+					if(!OmniCookies.settings.alternateStockMarket) {
+						me.avgL.innerHTML = ' ('+me.avgL.innerHTML+')';
+					}
 					if(avg.avgValue < me.val) {
 						me.avgL.classList.remove('red');
 						me.avgL.classList.add('green');
@@ -715,8 +726,14 @@ export let stockInfo = new Patch(function() {
 						me.avgL.classList.add('red');
 					}
 				} else {
-					me.avgL.style.visibility = 'hidden';
-					me.avgL.innerHTML = '';
+					if(!OmniCookies.settings.alternateStockMarket) {
+						me.avgL.style.visibility = 'hidden';
+						me.avgL.innerHTML = '';
+					} else {
+						me.avgL.innerHTML = '$$--.--';
+					}
+					me.avgL.classList.remove('red');
+					me.avgL.classList.remove('green');
 				}
 			} else {
 				if(me.avgL) {
@@ -727,7 +744,7 @@ export let stockInfo = new Patch(function() {
 			'before',
 			{ M: stockMarket }
 		);
-		stockMarket.toRedraw = 1;
+		stockMarket.toRedraw = (2 as any);
 	});
 })
 
@@ -1082,23 +1099,19 @@ export let dangerousBrokers = new Patch(function() {
 export let heavenlyCookies = new Patch(function() {
 	Game.crateTooltip = Cppkies.injectCode(Game.crateTooltip,
 		`if (me.tier!=0 && Game.Has('Label printer')) tags.push('Tier : '`,
-		`if(OmniCookies.settings.heavenlyCookies) {
-			if(OmniCookies.vars.prestigeCookies[me.name]) {
+		`if(OmniCookies.settings.heavenlyCookies && me.pseudoCookie) {
+			if(!OmniCookies.vars.bannedPseudoCookies[me.name]) {
 				tags.push('Cookie', 0);
 			}
 		}\n`,
-		'before', 
+		'before',
 		{ mysterious: 0 }
 	);
 	Game.particleAdd = Cppkies.injectCode(Game.particleAdd,
 		/(if \(cookie\.bought>0 && )(cookie\.pool=='cookie')(\) cookies\.push\(cookie\.icon\);)/,
-		`$1($2 || (OmniCookies.settings.heavenlyCookies && cookie.pool == 'prestige' && Game.Has(cookie.name) && OmniCookies.vars.prestigeCookies[cookie.name]))$3`,
+		`$1($2 || (OmniCookies.settings.heavenlyCookies && cookie.pseudoCookie && Game.Has(cookie.name) && !OmniCookies.vars.bannedPseudoCookies[cookie.name]))$3`,
 		'replace'
 	);
-
-	vars.prestigeCookies['Heavenly cookies'] = true;
-	vars.prestigeCookies['Wrinkly cookies'] = true;
-	vars.prestigeCookies['Sugar crystal cookies'] = true;
 })
 
 export let buildingPriceBuff = new Patch(function() {
@@ -1134,4 +1147,330 @@ export let buildingPriceBuff = new Patch(function() {
 		}`,
 		'before'
 	);
+})
+
+export let alternateStockMarket = new Patch(function() {
+	Util.onMinigameLoaded('Bank', function() {
+		let stockMarket = Game.Objects['Bank'].minigame;
+		let marketL = l('bankContent');
+		let headerL = l('bankHeader');
+		let graphL = l('bankGraphBox');
+
+		// Move the first 4 elements outside of the header
+		for(let i=0;i<4;i++) marketL.insertBefore(headerL.children[0], headerL);
+
+		// Move the graph to be before the rest of the elements
+		headerL.insertBefore(graphL, headerL.children[0]);
+
+		// Collect all of the bankGoods and place them in a new div
+		let goodsDiv = document.createElement('div');
+		goodsDiv.style.display = 'table';
+		for(let goodId in stockMarket.goodsById) {
+			let newDiv = document.createElement('div');
+			newDiv.style.display = 'inline-block';
+			newDiv.style.paddingRight = '4px';
+			newDiv.style.paddingLeft = '4px';
+
+			let percentSpan = document.getElementById(`bankGood-${goodId}-sym`);
+			let valueSpan = document.getElementById(`bankGood-${goodId}-val`);
+			let stockSpan = document.getElementById(`bankGood-${goodId}-stock`);
+			let stockMaxSpan = document.getElementById(`bankGood-${goodId}-stockMax`);
+			let stockValueSpan = document.getElementById(`bankGood-${goodId}-avg`);
+			let hideButton = document.getElementById(`bankGood-${goodId}-viewHide`);
+			let buyButton = document.getElementById(`bankGood-${goodId}_Max`);
+			let sellButton = document.getElementById(`bankGood-${goodId}_-All`);
+			let good = stockMarket.goodsById[goodId];
+			let icon = (good.l.getElementsByClassName('icon')[0] as HTMLElement);
+			newDiv.appendChild(good.l);
+			newDiv.appendChild(icon);
+			goodsDiv.appendChild(newDiv);
+
+			let symbolTable = document.createElement('table');
+			symbolTable.style.display = 'inline-block';
+			symbolTable.style.overflow = 'hidden';
+			
+			let topRow = document.createElement('tr');
+			let nameCell = document.createElement('td'); topRow.appendChild(nameCell);
+			nameCell.setAttribute('rowspan', '2');
+			nameCell.style.verticalAlign = 'center';
+			let percentCell = document.createElement('td'); topRow.appendChild(percentCell);
+			let valueCell = document.createElement('td'); topRow.appendChild(valueCell);
+			let maxStockCell = document.createElement('td'); topRow.appendChild(maxStockCell);
+			symbolTable.appendChild(topRow);
+
+			let bottomRow = document.createElement('tr');
+			let profitPercentCell = document.createElement('td'); bottomRow.appendChild(profitPercentCell);
+			let boughtValueCell = document.createElement('td'); bottomRow.appendChild(boughtValueCell);
+			let ownedStockCell = document.createElement('td'); bottomRow.appendChild(ownedStockCell);
+			symbolTable.appendChild(bottomRow);
+
+			let rightTable = document.createElement('table');
+			rightTable.style.display = 'inline-block';
+			let rightTopRow = document.createElement('tr');
+			let rightBotRow = document.createElement('tr');
+			let buyButtonCell = document.createElement('td'); rightTopRow.appendChild(buyButtonCell);
+			let hideButtonCell = document.createElement('td'); rightTopRow.appendChild(hideButtonCell);
+			let sellButtonCell = document.createElement('td'); rightBotRow.appendChild(sellButtonCell);
+			rightTable.appendChild(rightTopRow);
+			rightTable.appendChild(rightBotRow);
+
+			// move icon
+			icon.style.zIndex = '';
+			icon.style.transform = '';
+			icon.style.position = '';
+			icon.style.margin = '-6px -14px';
+			icon.style.float = 'left';
+
+			// Perform open heart surgery
+			good.l.style.width = 'fit-content';
+			good.l.style.background = 'linear-gradient(to right,#333,#222,#111,#000)';
+			//good.l.style.margin = '1px';
+			good.l.style.width = 'auto';
+			//good.l.style.height = '32px';
+
+			let buySellDiv = (good.l.children[good.l.children.length-1] as HTMLElement);
+			buySellDiv.remove();
+
+			// move Hide button outside
+			hideButton.style.position = 'relative';
+			hideButton.style.display = 'inline-block';
+			hideButton.style.paddingTop = '0px';
+			hideButton.style.paddingBottom = '0px';
+			hideButton.style.width = '25px';
+			hideButtonCell.appendChild(hideButton);
+			//good.l.appendChild(hideButton);
+
+			// remove most buy/sell buttons and stack them
+			buyButton.style.verticalAlign = 'bottom';
+			sellButton.style.verticalAlign = 'bottom';
+			buyButton.style.margin = '0px 0px';
+			sellButton.style.margin = '0px 0px';
+			buyButton.style.background = '#000';
+			sellButton.style.background = '#000';
+			buyButtonCell.appendChild(buyButton);
+			sellButtonCell.appendChild(sellButton);
+
+			// modify the bank symbols (o h n o)
+			let symbolsDiv = (good.l.children[0] as HTMLElement);
+			symbolsDiv.style.height = '32px';
+			//symbolsDiv.style.float = 'left';
+			//symbolsDiv.style.width = '205px';
+			symbolsDiv.appendChild(symbolTable);
+			//symbolsDiv.insertBefore(symbolTable, symbolsDiv.children[0]);
+			symbolsDiv.appendChild(rightTable);
+			
+			symbolTable.setAttribute('onmouseout', symbolsDiv.getAttribute('onmouseout'));
+			symbolTable.setAttribute('onmouseover', symbolsDiv.getAttribute('onmouseover'));
+			symbolsDiv.removeAttribute('onmouseout');
+			symbolsDiv.removeAttribute('onmouseover');
+
+			let titleSymbol = percentSpan.parentElement;
+			//titleSymbol.style.float = 'left';
+			titleSymbol.style.width = '40px';
+			//titleSymbol.style.height = '28px';
+			titleSymbol.style.padding = '1px 0px';
+			//titleSymbol.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			titleSymbol.removeChild(percentSpan);
+			let titleDiv = document.createElement('div');
+			titleDiv.innerHTML = titleSymbol.innerHTML.trim();
+			titleSymbol.innerHTML = '';
+			titleSymbol.style.background = 'unset';
+			//titleDiv.style.paddingTop = '8px';
+			titleDiv.style.fontSize = '13px';
+			//titleDiv.style.position = 'relative';
+			//titleSymbol.appendChild(icon);
+			titleSymbol.appendChild(titleDiv);
+			nameCell.appendChild(titleSymbol);
+			nameCell.style.verticalAlign = 'middle';
+			nameCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+
+			let percentSymbol = document.createElement('div');
+			let percentSpanDiv = document.createElement('div');
+			percentSpanDiv.style.paddingRight = '2px';
+			percentSymbol.className = "bankSymbol";
+			percentSymbol.style.margin = '0px 1px';
+			percentSymbol.style.padding = '2px 0px';
+			//percentSymbol.style.float = 'left';
+			percentSymbol.style.textAlign = 'right';
+			percentSymbol.style.width = '60px';
+			percentSymbol.style.overflow = 'hidden';
+			percentSymbol.style.background = 'unset';
+			percentCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			percentSpanDiv.appendChild(percentSpan);
+			percentSymbol.appendChild(percentSpanDiv);
+			percentCell.appendChild(percentSymbol);
+			
+			let valueSymbol = valueSpan.parentElement;
+			valueSpan.style.marginLeft = '4px';
+			valueSymbol.style.margin = '0px 0px';
+			valueSymbol.style.background = 'unset';
+			//valueSymbol.style.float = 'left';
+			valueSymbol.style.width = '50px';
+			valueSymbol.style.textAlign = 'left';
+			valueSymbol.style.display = 'inline-block';
+			valueCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			valueSymbol.innerHTML = '';
+			valueSymbol.appendChild(valueSpan);
+			valueCell.appendChild(valueSymbol);
+
+			let stockMaxSymbol = stockMaxSpan.parentElement;
+			stockMaxSymbol.style.margin = '0px 0px';
+			stockMaxSymbol.style.background = '';
+			stockMaxSymbol.style.width = '50px';
+			stockMaxSymbol.style.display = 'inline-block';
+			stockMaxSymbol.style.background = 'unset';
+			maxStockCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			stockMaxSymbol.innerHTML = '';
+			stockMaxSymbol.appendChild(stockMaxSpan);
+			stockMaxSpan.innerHTML = stockMaxSpan.innerHTML.replace('/', '');
+			maxStockCell.appendChild(stockMaxSymbol);
+
+			let ownedStockSymbol = document.createElement('div');
+			ownedStockSymbol.className = "bankSymbol";
+			ownedStockSymbol.id = `bankGood-${good.id}-ownedStockBox`
+			ownedStockSymbol.style.margin = '0px 0px';
+			ownedStockSymbol.style.padding = '2px 0px';
+			ownedStockSymbol.style.width = '50px';
+			ownedStockSymbol.style.overflow = 'hidden';
+			ownedStockSymbol.style.background = 'unset';
+			ownedStockCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			ownedStockSymbol.appendChild(stockSpan);
+			ownedStockCell.appendChild(ownedStockSymbol);
+
+			let stockValueSymbol = document.createElement('div');
+			stockValueSymbol.className = "bankSymbol";
+			stockValueSymbol.id = `bankGood-${good.id}-boughtValueBox`;
+			stockValueSymbol.style.margin = '0px 0px';
+			stockValueSymbol.style.padding = '2px 0px';
+			stockValueSymbol.style.width = '50px';
+			stockValueSymbol.style.overflow = 'hidden';
+			stockValueSymbol.style.background = 'unset';
+			stockValueSymbol.style.textAlign = 'left';
+			boughtValueCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			boughtValueCell.appendChild(stockValueSymbol);
+
+			let profitPercentSymbol = document.createElement('div');
+			let profitSpanDiv = document.createElement('div');
+			profitSpanDiv.style.paddingRight = '2px';
+			profitSpanDiv.id = `bankGood-${good.id}-profitSym`;
+			profitSpanDiv.style.visibility = 'hidden';
+			profitSpanDiv.innerHTML = '--.--%';
+			profitSpanDiv.style.fontWeight = 'normal';
+			profitPercentSymbol.className = "bankSymbol";
+			profitPercentSymbol.style.margin = '0px 1px';
+			profitPercentSymbol.style.padding = '2px 0px';
+			profitPercentSymbol.style.textAlign = 'right';
+			profitPercentSymbol.style.width = '60px';
+			profitPercentSymbol.style.overflow = 'hidden';
+			profitPercentSymbol.style.background = 'unset';
+			profitPercentCell.style.boxShadow = '0px 0px 0px 1px rgba(255,255,255,0.1), 2px 2px 4px rgba(0,0,0,0.5) inset';
+			profitPercentSymbol.appendChild(profitSpanDiv);
+			profitPercentCell.appendChild(profitPercentSymbol);
+			//symbolsDiv.insertBefore(percentSymbol, valueSymbol);
+		}
+		headerL.appendChild(goodsDiv);
+
+		stockMarket.draw = Cppkies.injectCode(stockMarket.draw,
+			`.vals[0]*M.graphScale))+'px) scale(0.5)';`,
+			`\nlet ownedStockBox = l('bankGood-'+me.id+'-ownedStockBox');
+			if(me.stockBoxL.classList.contains('green')) ownedStockBox.classList.add('green');
+			else ownedStockBox.classList.remove('green');
+			me.stockBoxL.classList.remove('green');
+			me.stockBoxL.innerHTML = me.stockBoxL.innerHTML.replace('/', '');
+			let profitSpan = l('bankGood-'+me.id+'-profitSym');
+			if(OmniCookies.settings.stockValueData) {
+				profitSpan.style.visibility = 'visible';
+				let avg = OmniCookies.saveData.stockAverages[me.id];
+				if(avg && avg.totalValue > 0) {
+					let percent = (me.val/avg.avgValue - 1) * 100;
+					console.log(percent);
+					profitSpan.innerHTML = Beautify(percent, 2) + '%';
+					profitSpan.style.paddingRight = '2px';
+					if (percent>=0) {profitSpan.classList.add('bankSymbolUp');profitSpan.classList.remove('bankSymbolDown');}
+					else if (percent<0) {profitSpan.classList.remove('bankSymbolUp');profitSpan.classList.add('bankSymbolDown');}
+					else {
+						profitSpan.classList.remove('bankSymbolUp');
+						profitSpan.classList.remove('bankSymbolDown');
+						profitSpan.style.paddingRight = '12px';
+					}
+				} else {
+					profitSpan.classList.remove('bankSymbolUp');
+					profitSpan.classList.remove('bankSymbolDown');
+					profitSpan.innerHTML = '--.--%';
+					profitSpan.style.paddingRight = '12px';
+				}
+			} else {
+				profitSpan.style.visibility = 'hidden';
+			}`,
+			'after',
+			{ M: stockMarket }
+		);
+
+		Game.Logic = Cppkies.injectCode(Game.Logic,
+			`OmniCookies.vars.prevShortcut = activeShortcut;`,
+			`for(let goodId in Game.Objects['Bank'].minigame.goodsById) {
+				let buyButton = document.getElementById('bankGood-'+goodId+'_Max');
+				let sellButton = document.getElementById('bankGood-'+goodId+'_-All');
+				let amount = 1;
+				switch(activeShortcut) {
+					case 0: amount = 1; break;
+					case 1: amount = 10; break;
+					case 2: amount = 100; break;
+					case 3: amount = -1; break;
+				}
+				if(amount == -1) {
+					buyButton.innerHTML = 'Max';
+					sellButton.innerHTML = 'All';
+				} else {
+					buyButton.innerHTML = amount.toString();
+					sellButton.innerHTML = amount.toString();
+				}
+			}\n`,
+			'before'
+		);
+
+		let awesomeInject: InjectParams = [
+			null,
+			`\nswitch(OmniCookies.vars.prevShortcut) {
+				case 0: n = 1; break;
+				case 1: n = 10; break;
+				case 2: n = 100; break;
+				case 3: n = 10000; break;
+			}`,
+			'before'
+		]
+
+		stockMarket.buyGood = Cppkies.injectCode(stockMarket.buyGood, ...awesomeInject, { M: stockMarket });
+		stockMarket.sellGood = Cppkies.injectCode(stockMarket.sellGood, ...awesomeInject, { M: stockMarket });
+		stockMarket.tradeTooltip = Cppkies.injectCode(stockMarket.tradeTooltip, ...awesomeInject, { M: stockMarket });
+
+		stockMarket.toRedraw = (2 as any);
+	});
+})
+
+export let drawTimerFix = new Patch(function() {
+	Game.Loop = Cppkies.injectCodes(Game.Loop, [
+		[
+			`Timer.say('DRAW');`,
+			`//`,
+			'before'
+		],
+		[
+			`Timer.say('END DRAW');`,
+			`//`,
+			'before'
+		]
+	]);
+	Game.Draw = Cppkies.injectCodes(Game.Draw, [
+		[
+			null,
+			`\nTimer.say('DRAW');`,
+			'before'
+		],
+		[
+			null,
+			`Timer.say('END DRAW');\n`,
+			'after'
+		]
+	])
 })

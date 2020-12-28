@@ -97,6 +97,10 @@ declare class Settings {
     /** Whether to make building price multipliers instead affect the price scaling */
     buildingPriceBuff: boolean;
     /** Exponent of 10 to aim for when the ascend meter fills */
+    /** Whether to fix the positioning of Timer.say for Game.Draw */
+    drawTimerFix: boolean;
+    /** Whether to use an alternative stock market layout */
+    alternateStockMarket: boolean;
     /** Initializes to the default settings */
     constructor();
     set(setting: string, value: any): void;
@@ -345,6 +349,8 @@ declare let dangerousBrokers: Patch;
  */
 declare let heavenlyCookies: Patch;
 declare let buildingPriceBuff: Patch;
+declare let alternateStockMarket: Patch;
+declare let drawTimerFix: Patch;
 
 type _Patches_Patch = Patch;
 declare const _Patches_Patch: typeof Patch;
@@ -372,6 +378,8 @@ declare const _Patches_optiCookies: typeof optiCookies;
 declare const _Patches_dangerousBrokers: typeof dangerousBrokers;
 declare const _Patches_heavenlyCookies: typeof heavenlyCookies;
 declare const _Patches_buildingPriceBuff: typeof buildingPriceBuff;
+declare const _Patches_alternateStockMarket: typeof alternateStockMarket;
+declare const _Patches_drawTimerFix: typeof drawTimerFix;
 declare namespace _Patches {
   export {
     _Patches_Patch as Patch,
@@ -400,6 +408,8 @@ declare namespace _Patches {
     _Patches_dangerousBrokers as dangerousBrokers,
     _Patches_heavenlyCookies as heavenlyCookies,
     _Patches_buildingPriceBuff as buildingPriceBuff,
+    _Patches_alternateStockMarket as alternateStockMarket,
+    _Patches_drawTimerFix as drawTimerFix,
   };
 }
 
@@ -415,7 +425,8 @@ interface Vars {
     patchedTrueCyclius: boolean;
     prevShortcut: 0 | 1 | 2 | 3;
     GetBuffTooltipFunc?: Function;
-    prestigeCookies: Record<string, boolean>;
+    /** pseudoCookie upgrades not to be given tags or particles */
+    bannedPseudoCookies: Record<string, boolean>;
     skipModifyPrice: boolean;
     bannedGrandmas: Record<string, boolean>;
 }

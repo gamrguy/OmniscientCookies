@@ -1,5 +1,5 @@
 export let name = 'Omniscient Cookies'
-export let version = 'v2.1.2'
+export let version = 'v2.2.0'
 
 export interface Vars {
 	lastMilk: number
@@ -13,7 +13,8 @@ export interface Vars {
 	patchedTrueCyclius: boolean
 	prevShortcut: 0 | 1 | 2 | 3
 	GetBuffTooltipFunc?: Function
-	prestigeCookies: Record<string, boolean>,
+	/** pseudoCookie upgrades not to be given tags or particles */
+	bannedPseudoCookies: Record<string, boolean>,
 	skipModifyPrice: boolean,
 	bannedGrandmas: Record<string, boolean>
 }
@@ -29,7 +30,7 @@ export let vars: Vars = {
 	levelDiff: 0,
 	patchedTrueCyclius: false,
 	prevShortcut: 0,
-	prestigeCookies: {},
+	bannedPseudoCookies: {},
 	skipModifyPrice: false,
 	bannedGrandmas: {}
 }

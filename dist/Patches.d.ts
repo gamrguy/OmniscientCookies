@@ -82,3 +82,5 @@ export declare let dangerousBrokers: Patch;
  */
 export declare let heavenlyCookies: Patch;
 export declare let buildingPriceBuff: Patch;
+export declare let alternateStockMarket: Patch;
+export declare let drawTimerFix: Patch;

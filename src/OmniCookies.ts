@@ -43,8 +43,7 @@ let grandmaDesc = [
 	choose([`NaNnies`, `[Error: cookie is not defined]s`, `['g','r','a','n']s`]),
 	choose([`spaghetti bakers`, `pancake flippers`, `not-cookie productionists`, `pastry panhandlers`])
 ]
-let buildingChoice = choose(Game.ObjectsById.slice(0, 18)); //no modded buildings sorry
-if(buildingChoice == Game.Objects['Cursor']) buildingChoice = Game.Objects['Grandma'];
+let buildingChoice = choose(Game.ObjectsById.slice(1, 18)); //no modded buildings sorry
 let numGrandmas = 0;
 if(buildingChoice == Game.Objects['Grandma']) numGrandmas = Game.Objects['Grandma'].amount;
 else numGrandmas = Util.getNumSynergyGrandmas(buildingChoice);
@@ -115,5 +114,7 @@ export let mod: Game.Mod = {
 		Patches.dangerousBrokers.toggle(settings.dangerousBrokers);
 		Patches.heavenlyCookies.toggle(settings.heavenlyCookies);
 		Patches.buildingPriceBuff.toggle(settings.buildingPriceBuff);
+		Patches.alternateStockMarket.toggle(settings.alternateStockMarket);
+		Patches.drawTimerFix.toggle(settings.drawTimerFix);
 	}
 }

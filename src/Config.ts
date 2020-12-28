@@ -34,6 +34,7 @@ class OptionedButton<T extends keyof Settings> implements ConfigElement {
 	
 		let set = Number(settings[this.settingName]);
 		let selected = this.options[set];
+		if(!selected) selected = { text: `ERROR! No option ${set}`, off: true }
 		let a = document.createElement('a');
 		a.id = this.id;
 		a.className = 'option' + (selected.off ? ' off' : '');
@@ -177,6 +178,23 @@ class Listing implements ConfigElement {
 		for(let element of this.elements) {
 			div.appendChild(element.display());
 		}
+		return div;
+	}
+}
+
+/** Returns an empty div if not in open sesame mode */
+class SesameListing extends Listing {
+	display() {
+		let div = super.display();
+		div.style.display = Game.sesame ? div.style.display : 'none';
+		return div;
+	}
+}
+
+class SesameHeader extends Header {
+	display() {
+		let div = super.display();
+		div.style.display = Game.sesame ? div.style.display : 'none';
 		return div;
 	}
 }
@@ -333,6 +351,11 @@ let menuDisplay = new ConfigMenu([
 			{ text: 'Dangerous brokers ON', func: () => Patches.dangerousBrokers.apply() },
 			{ text: 'Dangerous brokers OFF' },
 			'(hiring brokers reduces your Stock Market profits)'
+		),
+		new BooleanButton('alternateStockMarket',
+			{ text: 'Alternate layout ON', func: () => Patches.alternateStockMarket.apply() },
+			{ text: 'Alternate layout OFF' },
+			'(a more compact layout for goods; disabling requires refresh)'
 		)
 	]),
 	new Header("Pantheon"),
@@ -403,6 +426,14 @@ let menuDisplay = new ConfigMenu([
 			{ text: 'OptiCookies ON', func: () => Patches.optiCookies.apply() },
 			{ text: 'OptiCookies OFF' },
 			'(a couple of small performance tweaks; disabling requires refresh)'
+		)
+	]),
+	new SesameHeader('Debug'),
+	new SesameListing([
+		new BooleanButton('drawTimerFix',
+			{ text: 'Draw timer fix ON', func: () => Patches.drawTimerFix.apply() },
+			{ text: 'Draw timer fix OFF' },
+			'(adjusts placement of Timer.say for Game.Draw)'
 		)
 	])
 ])

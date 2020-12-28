@@ -73,6 +73,10 @@ export declare class Settings {
     /** Whether to make building price multipliers instead affect the price scaling */
     buildingPriceBuff: boolean;
     /** Exponent of 10 to aim for when the ascend meter fills */
+    /** Whether to fix the positioning of Timer.say for Game.Draw */
+    drawTimerFix: boolean;
+    /** Whether to use an alternative stock market layout */
+    alternateStockMarket: boolean;
     /** Initializes to the default settings */
     constructor();
     set(setting: string, value: any): void;

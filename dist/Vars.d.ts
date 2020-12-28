@@ -13,7 +13,8 @@ export interface Vars {
     patchedTrueCyclius: boolean;
     prevShortcut: 0 | 1 | 2 | 3;
     GetBuffTooltipFunc?: Function;
-    prestigeCookies: Record<string, boolean>;
+    /** pseudoCookie upgrades not to be given tags or particles */
+    bannedPseudoCookies: Record<string, boolean>;
     skipModifyPrice: boolean;
     bannedGrandmas: Record<string, boolean>;
 }

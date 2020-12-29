@@ -1411,22 +1411,24 @@ export let alternateStockMarket = new Patch(function() {
 
 		Game.Logic = Cppkies.injectCode(Game.Logic,
 			`OmniCookies.vars.prevShortcut = activeShortcut;`,
-			`for(let goodId in Game.Objects['Bank'].minigame.goodsById) {
-				let buyButton = document.getElementById('bankGood-'+goodId+'_Max');
-				let sellButton = document.getElementById('bankGood-'+goodId+'_-All');
-				let amount = 1;
-				switch(activeShortcut) {
-					case 0: amount = 1; break;
-					case 1: amount = 10; break;
-					case 2: amount = 100; break;
-					case 3: amount = -1; break;
-				}
-				if(amount == -1) {
-					buyButton.innerHTML = 'Max';
-					sellButton.innerHTML = 'All';
-				} else {
-					buyButton.innerHTML = amount.toString();
-					sellButton.innerHTML = amount.toString();
+			`if(activeShortcut != OmniCookies.vars.prevShortcut) {
+				for(let goodId in Game.Objects['Bank'].minigame.goodsById) {
+					let buyButton = document.getElementById('bankGood-'+goodId+'_Max');
+					let sellButton = document.getElementById('bankGood-'+goodId+'_-All');
+					let amount = 1;
+					switch(activeShortcut) {
+						case 0: amount = 1; break;
+						case 1: amount = 10; break;
+						case 2: amount = 100; break;
+						case 3: amount = -1; break;
+					}
+					if(amount == -1) {
+						buyButton.innerHTML = 'Max';
+						sellButton.innerHTML = 'All';
+					} else {
+						buyButton.innerHTML = amount.toString();
+						sellButton.innerHTML = amount.toString();
+					}
 				}
 			}\n`,
 			'before'
@@ -1434,15 +1436,17 @@ export let alternateStockMarket = new Patch(function() {
 
 		let awesomeInject: InjectParams = [
 			null,
-			`\nswitch(OmniCookies.vars.prevShortcut) {
+			`\nlet oldN = n;
+			switch(OmniCookies.vars.prevShortcut) {
 				case 0: n = 1; break;
 				case 1: n = 10; break;
 				case 2: n = 100; break;
 				case 3: n = 10000; break;
-			}`,
+			}
+			n *= Math.sign(oldN);`,
 			'before'
-		]
-
+		];
+		
 		stockMarket.buyGood = Cppkies.injectCode(stockMarket.buyGood, ...awesomeInject, { M: stockMarket });
 		stockMarket.sellGood = Cppkies.injectCode(stockMarket.sellGood, ...awesomeInject, { M: stockMarket });
 		stockMarket.tradeTooltip = Cppkies.injectCode(stockMarket.tradeTooltip, ...awesomeInject, { M: stockMarket });

@@ -313,7 +313,7 @@ export let buffTooltips = new Patch(function() {
 
 	Game.gainBuff = Cppkies.injectCodes(Game.gainBuff, [
 		[   // Place buff somewhere we can access it later
-			'Game.buffsL.',
+			'Game.buffsL.innerHTML=',
 			'OmniCookies.vars.buffsById[buff.id] = buff;\n',
 			'before'
 		],

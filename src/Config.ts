@@ -3,7 +3,7 @@ import { name, vars, version } from './Vars'
 import * as Util from './Util'
 import * as Patches from './Patches'
 
-interface ButtonOption {
+export interface ButtonOption {
 	/** Text to display while this option is selected */
 	text: string
 
@@ -14,11 +14,11 @@ interface ButtonOption {
 	off?: boolean
 }
 
-interface ConfigElement {
+export interface ConfigElement {
 	display: () => HTMLElement
 }
 
-class OptionedButton<T extends keyof Settings> implements ConfigElement {
+export class OptionedButton<T extends keyof Settings> implements ConfigElement {
 	settingName: T
 	options: ButtonOption[]
 	desc: string
@@ -66,7 +66,7 @@ class OptionedButton<T extends keyof Settings> implements ConfigElement {
 	}
 }
 
-class BooleanButton<T extends keyof Settings> extends OptionedButton<T> {
+export class BooleanButton<T extends keyof Settings> extends OptionedButton<T> {
 	onOption: ButtonOption
 	offOption: ButtonOption
 	constructor(settingName: T, onOption: ButtonOption, offOption: ButtonOption, desc: string) {
@@ -77,7 +77,7 @@ class BooleanButton<T extends keyof Settings> extends OptionedButton<T> {
 	}
 }
 
-class Slider<T extends keyof Settings> implements ConfigElement {
+export class Slider<T extends keyof Settings> implements ConfigElement {
 	title: string
 	settingName: T
 	min: number
@@ -137,7 +137,7 @@ class Slider<T extends keyof Settings> implements ConfigElement {
 	}
 }
 
-class Header implements ConfigElement {
+export class Header implements ConfigElement {
 	text: string
 	constructor(text: string) {
 		this.text = text;
@@ -154,7 +154,7 @@ class Header implements ConfigElement {
 	}
 }
 
-class Title implements ConfigElement {
+export class Title implements ConfigElement {
 	text: string
 	constructor(text: string) {
 		this.text = text;
@@ -167,7 +167,7 @@ class Title implements ConfigElement {
 	}
 }
 
-class Listing implements ConfigElement {
+export class Listing implements ConfigElement {
 	elements: ConfigElement[]
 	constructor(elements: ConfigElement[]) {
 		this.elements = elements;
@@ -183,7 +183,7 @@ class Listing implements ConfigElement {
 }
 
 /** Returns an empty div if not in open sesame mode */
-class SesameListing extends Listing {
+export class SesameListing extends Listing {
 	display() {
 		let div = super.display();
 		div.style.display = Game.sesame ? div.style.display : 'none';
@@ -191,7 +191,7 @@ class SesameListing extends Listing {
 	}
 }
 
-class SesameHeader extends Header {
+export class SesameHeader extends Header {
 	display() {
 		let div = super.display();
 		div.style.display = Game.sesame ? div.style.display : 'none';
@@ -199,7 +199,7 @@ class SesameHeader extends Header {
 	}
 }
 
-class ConfigMenu {
+export class ConfigMenu {
 	elements: ConfigElement[]
 	constructor(elements: ConfigElement[]) {
 		this.elements = elements;

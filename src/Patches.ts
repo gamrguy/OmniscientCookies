@@ -348,10 +348,20 @@ export let buffTooltips = new Patch(function() {
 			test.textContent = buff.name;
 			let width = Math.max(200, test.clientWidth + 78);
 
+			// Fix max time changes
 			let buffDesc = buff.desc.replace(Game.sayTime(buff.maxTime,-1),'$&');
+
+			// Fix Devastation
+			if(buff.name == 'Devastation') {
+				buff.desc = buff.desc.replace(/(\+)\d+(%)/, `$1${Math.floor((buff.multClick-1)*100)}$2`);
+			}
+
 			let text = '<div class="prompt" style="white-space:nowrap;min-width:'+width+'px;text-align:center;font-size:11px;margin:8px 0px;"><h3>'+buff.name+'</h3>'+'<div class="line"></div>'+buffDesc;
+			
+			// 
 			if(settings.buffTooltipDuration) 
 				text += '<div class="line"></div>'+Game.sayTime(buff.time,-1)+' left';
+			
 			text += '</div>';
 			return text;
 		};

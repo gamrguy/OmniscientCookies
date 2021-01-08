@@ -4,18 +4,18 @@ declare global {
         SimpleBeautify: Function;
     }
 }
-declare class RoutineFunction {
+export declare class RoutineFunction {
     func: () => void;
     enabled: () => boolean;
     constructor(func: () => void, enabled?: () => boolean);
 }
-declare class Routine {
+export declare class Routine {
     routines: Record<string, RoutineFunction>;
     constructor(routines?: Record<string, RoutineFunction>);
     run(): void;
     register(name: string, func: () => void): void;
 }
-declare class RoutineCollection implements Record<string, RoutineFunction> {
+export declare class RoutineCollection implements Record<string, RoutineFunction> {
     [routine: string]: RoutineFunction;
 }
 declare class LogicRoutineCollection extends RoutineCollection {
@@ -33,6 +33,8 @@ declare class LogicRoutineCollection extends RoutineCollection {
     updateSkruuiaRebalance: RoutineFunction;
     /** In enhanced bulk mode, refresh store every 10 frames */
     bulkStoreRefresh: RoutineFunction;
+    /** Deselect dead wrinklers. Strictly a cosmetic bugfix */
+    wrinklerDeselect: RoutineFunction;
 }
 declare class LogicRoutine extends Routine {
     routines: LogicRoutineCollection;

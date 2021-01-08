@@ -10,7 +10,7 @@ declare global {
 	}
 }
 
-class RoutineFunction {
+export class RoutineFunction {
 	func: () => void
 	enabled: () => boolean
 	constructor(func: () => void, enabled: () => boolean = function() { return true; }) {
@@ -19,7 +19,7 @@ class RoutineFunction {
 	}
 }
 
-class Routine {
+export class Routine {
 	routines: Record<string, RoutineFunction>
 	constructor(routines: Record<string, RoutineFunction> = {}) { this.routines = routines }
 	run() {
@@ -34,7 +34,7 @@ class Routine {
 	}
 }
 
-class RoutineCollection implements Record<string, RoutineFunction> {
+export class RoutineCollection implements Record<string, RoutineFunction> {
 	[routine: string]: RoutineFunction
 }
 
@@ -136,6 +136,11 @@ class LogicRoutineCollection extends RoutineCollection {
 		() => Game.storeToRefresh = 1, 
 		() => settings.enhancedBulk && Game.T%10==0
 	);
+
+	/** Deselect dead wrinklers. Strictly a cosmetic bugfix */
+	wrinklerDeselect = new RoutineFunction(function() {
+		Game.wrinklers.forEach((w) => w.selected = w.phase > 0 ? w.selected : 0);
+	})
 }
 class LogicRoutine extends Routine { routines: LogicRoutineCollection }
 export let logicRoutine = new LogicRoutine(new LogicRoutineCollection());

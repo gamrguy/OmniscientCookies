@@ -256,11 +256,104 @@ declare namespace _Util {
   };
 }
 
+interface ButtonOption {
+    /** Text to display while this option is selected */
+    text: string;
+    /** Function to run when this option is selected */
+    func?: () => void;
+    /** Whether this option should display as "off" */
+    off?: boolean;
+}
+interface ConfigElement {
+    display: () => HTMLElement;
+}
+declare class OptionedButton<T extends keyof Settings> implements ConfigElement {
+    settingName: T;
+    options: ButtonOption[];
+    desc: string;
+    id: string;
+    constructor(settingName: T, options: ButtonOption[], desc: string);
+    display(): HTMLDivElement;
+    toggleFunction(): () => void;
+}
+declare class BooleanButton<T extends keyof Settings> extends OptionedButton<T> {
+    onOption: ButtonOption;
+    offOption: ButtonOption;
+    constructor(settingName: T, onOption: ButtonOption, offOption: ButtonOption, desc: string);
+}
+declare class Slider<T extends keyof Settings> implements ConfigElement {
+    title: string;
+    settingName: T;
+    min: number;
+    max: number;
+    step: number;
+    format: (num: number) => string;
+    constructor(settingName: T, title: string, min: number, max: number, step: number, format: (num: number) => string);
+    display(): HTMLDivElement;
+}
+declare class Header implements ConfigElement {
+    text: string;
+    constructor(text: string);
+    display(): HTMLDivElement;
+}
+declare class Title implements ConfigElement {
+    text: string;
+    constructor(text: string);
+    display(): HTMLDivElement;
+}
+declare class Listing implements ConfigElement {
+    elements: ConfigElement[];
+    constructor(elements: ConfigElement[]);
+    display(): HTMLDivElement;
+}
+/** Returns an empty div if not in open sesame mode */
+declare class SesameListing extends Listing {
+    display(): HTMLDivElement;
+}
+declare class SesameHeader extends Header {
+    display(): HTMLDivElement;
+}
+declare class ConfigMenu {
+    elements: ConfigElement[];
+    constructor(elements: ConfigElement[]);
+    display(): DocumentFragment;
+}
 declare function customOptionsMenu(): void;
 
+type _Config_ButtonOption = ButtonOption;
+type _Config_ConfigElement = ConfigElement;
+type _Config_OptionedButton<_0> = OptionedButton<_0>;
+declare const _Config_OptionedButton: typeof OptionedButton;
+type _Config_BooleanButton<_0> = BooleanButton<_0>;
+declare const _Config_BooleanButton: typeof BooleanButton;
+type _Config_Slider<_0> = Slider<_0>;
+declare const _Config_Slider: typeof Slider;
+type _Config_Header = Header;
+declare const _Config_Header: typeof Header;
+type _Config_Title = Title;
+declare const _Config_Title: typeof Title;
+type _Config_Listing = Listing;
+declare const _Config_Listing: typeof Listing;
+type _Config_SesameListing = SesameListing;
+declare const _Config_SesameListing: typeof SesameListing;
+type _Config_SesameHeader = SesameHeader;
+declare const _Config_SesameHeader: typeof SesameHeader;
+type _Config_ConfigMenu = ConfigMenu;
+declare const _Config_ConfigMenu: typeof ConfigMenu;
 declare const _Config_customOptionsMenu: typeof customOptionsMenu;
 declare namespace _Config {
   export {
+    _Config_ButtonOption as ButtonOption,
+    _Config_ConfigElement as ConfigElement,
+    _Config_OptionedButton as OptionedButton,
+    _Config_BooleanButton as BooleanButton,
+    _Config_Slider as Slider,
+    _Config_Header as Header,
+    _Config_Title as Title,
+    _Config_Listing as Listing,
+    _Config_SesameListing as SesameListing,
+    _Config_SesameHeader as SesameHeader,
+    _Config_ConfigMenu as ConfigMenu,
     _Config_customOptionsMenu as customOptionsMenu,
   };
 }
@@ -466,6 +559,8 @@ declare class LogicRoutineCollection extends RoutineCollection {
     updateSkruuiaRebalance: RoutineFunction;
     /** In enhanced bulk mode, refresh store every 10 frames */
     bulkStoreRefresh: RoutineFunction;
+    /** Deselect dead wrinklers. Strictly a cosmetic bugfix */
+    wrinklerDeselect: RoutineFunction;
 }
 declare class LogicRoutine extends Routine {
     routines: LogicRoutineCollection;
@@ -494,11 +589,20 @@ declare class ResetRoutine extends Routine {
 }
 declare let resetRoutine: ResetRoutine;
 
+type _Routines_RoutineFunction = RoutineFunction;
+declare const _Routines_RoutineFunction: typeof RoutineFunction;
+type _Routines_Routine = Routine;
+declare const _Routines_Routine: typeof Routine;
+type _Routines_RoutineCollection = RoutineCollection;
+declare const _Routines_RoutineCollection: typeof RoutineCollection;
 declare const _Routines_logicRoutine: typeof logicRoutine;
 declare const _Routines_drawRoutine: typeof drawRoutine;
 declare const _Routines_resetRoutine: typeof resetRoutine;
 declare namespace _Routines {
   export {
+    _Routines_RoutineFunction as RoutineFunction,
+    _Routines_Routine as Routine,
+    _Routines_RoutineCollection as RoutineCollection,
     _Routines_logicRoutine as logicRoutine,
     _Routines_drawRoutine as drawRoutine,
     _Routines_resetRoutine as resetRoutine,

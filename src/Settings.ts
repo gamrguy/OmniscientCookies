@@ -2,7 +2,16 @@ import { version } from "./Vars";
 import { loadData } from "./Util";
 
 export enum BypassFancySetting {
-	Default = 0, Fast = 1, Fancy = 2
+	Default, Fast, Fancy
+}
+
+export enum CursorStyleSetting {
+	Default,
+	Dark,
+	Retro,
+	DarkRetro,
+	Plain,
+	Tiered
 }
 
 export class Settings {
@@ -115,6 +124,9 @@ export class Settings {
 	/** Whether to use an alternative stock market layout */
 	alternateStockMarket: boolean
 
+	/** Selected cursor style */
+	colorfulCursors: CursorStyleSetting
+
 	/** Initializes to the default settings */
 	constructor() {
 		this.version = version;
@@ -152,6 +164,7 @@ export class Settings {
 		//this.ascendMeterPrecision = 0;
 		this.drawTimerFix = false;
 		this.alternateStockMarket = false;
+		this.colorfulCursors = 0;
 	}
 
 	set(setting: string, value: any) {

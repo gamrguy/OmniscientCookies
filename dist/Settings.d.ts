@@ -3,6 +3,14 @@ export declare enum BypassFancySetting {
     Fast = 1,
     Fancy = 2
 }
+export declare enum CursorStyleSetting {
+    Default = 0,
+    Dark = 1,
+    Retro = 2,
+    DarkRetro = 3,
+    Plain = 4,
+    Tiered = 5
+}
 export declare class Settings {
     /** Current Omniscient Cookies version */
     version: string;
@@ -77,6 +85,8 @@ export declare class Settings {
     drawTimerFix: boolean;
     /** Whether to use an alternative stock market layout */
     alternateStockMarket: boolean;
+    /** Selected cursor style */
+    colorfulCursors: CursorStyleSetting;
     /** Initializes to the default settings */
     constructor();
     set(setting: string, value: any): void;

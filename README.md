@@ -25,6 +25,27 @@ Alternatively, you can use the following command in the Javascript console, a us
 Game.LoadMod('https://gamrguy.github.io/OmniscientCookies/OmniscientCookies.js');
 ```
 
+Always-on features
+==================
+
+Improved buff tooltip visuals
+-----------------------------
+Disables text wrapping within buff tooltips so text doesn't get chopped into the next line.  
+Also fixes the clipping that occurs with the feather icons in buffs with long titles.  
+Additionally, when a buff is updated with a new maximum time, the tooltip description updates to match.
+
+Devastation buff tooltip fix
+----------------------------
+Though Godzamok's Devastation buff does increase in power with subsequent selloffs,
+its tooltip doesn't update to match, leading many to mistakenly believe only the first sell counts.
+Now it does update.
+
+Eye of the wrinkler fix
+-----------------------
+Popped wrinklers weren't getting deselected from Eye of the wrinkler,
+causing the Eye to flicker when new wrinklers spawned.
+Now it doesn't.
+
 Graphical enhancements
 ======================
 
@@ -47,12 +68,6 @@ Smooth buildings (enabled by default)
 -------------------------------------
 Makes buildings draw every frame instead of every three frames.  
 This greatly improves the smoothness of hovering over grandmas and the **Building scroll** feature.
-
-Improved buff tooltip visuals (not toggleable)
-----------------------------------------------
-Disables text wrapping within buff tooltips so text doesn't get chopped into the next line.  
-Also fixes the clipping that occurs with the feather icons in buffs with long titles.  
-Additionally, when a buff is updated with a new maximum time, the tooltip description updates to match.
 
 Improved building tooltips (enabled by default)
 -----------------------------------------------
@@ -79,6 +94,21 @@ Give those extra grandmas some breathing room by taking them to work!
 The amount of visible synergy grandmas is dependent on the value scaling of the correlating synergy bonus.
 
 Script grannies are introverts and stay home. The Matrix isn't suitable for humans anyway.
+
+Cursor style (default style by default)
+---------------------------------------
+
+![Stylish cursors](doc/colorfulCursors.png "Tiering up those clicks")
+
+Allows switching between a variety of different cursor styles, which currently includes:
+- Default (normal cursors)
+- Dark (dark cursors)
+- Retro (old-style cursors)
+- Dark Retro (dark old-style cursors)
+- Plain (uses the plain-tier cursor upgrade icon)
+- Tiered (cursors gain new styles for every cursor upgrade)
+
+The first 3 new styles are actually unused sprites from the vanilla game.
 
 Separate tech upgrade category (enabled by default)
 ---------------------------------------------------

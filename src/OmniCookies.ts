@@ -1,5 +1,5 @@
 import { saveData as _saveData } from "./SaveData"
-import { settings as _settings } from "./Settings"
+import { CursorStyleSetting, settings as _settings } from "./Settings"
 import * as _Logger from './Logger'
 import * as _Util from './Util'
 import * as _Config from './Config'
@@ -22,6 +22,7 @@ export let GrandmaSupport = _GrandmaSupport
 export let vars = _Vars.vars
 export let settings = _settings
 export let saveData = _saveData
+export let CursorStyle = CursorStyleSetting;
 
 //#region easter eggs lul
 let grandmaDesc = [
@@ -116,5 +117,6 @@ export let mod: Game.Mod = {
 		Patches.buildingPriceBuff.toggle(settings.buildingPriceBuff);
 		Patches.alternateStockMarket.toggle(settings.alternateStockMarket);
 		Patches.drawTimerFix.toggle(settings.drawTimerFix);
+		Patches.colorfulCursors.toggle(settings.colorfulCursors != CursorStyleSetting.Default);
 	}
 }

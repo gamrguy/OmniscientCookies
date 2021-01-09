@@ -1,4 +1,5 @@
 /// <reference types="cookieclicker" />
+import { CursorStyleSetting } from "./Settings";
 import * as _Logger from './Logger';
 import * as _Util from './Util';
 import * as _Config from './Config';
@@ -17,4 +18,5 @@ export declare let GrandmaSupport: typeof _GrandmaSupport;
 export declare let vars: _Vars.Vars;
 export declare let settings: import("./Settings").Settings;
 export declare let saveData: import("./SaveData").SaveData;
+export declare let CursorStyle: typeof CursorStyleSetting;
 export declare let mod: Game.Mod;

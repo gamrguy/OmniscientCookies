@@ -247,6 +247,17 @@ let menuDisplay = new ConfigMenu([
 			{ text: 'Bring grandma to work day OFF' },
 			'(synergy grandmas make an appearance in their respective building views)'
 		),
+		new OptionedButton('colorfulCursors', 
+			[
+				{ text: 'Cursor style DEFAULT' },
+				{ text: 'Cursor style DARK', func: () => Patches.colorfulCursors.apply() },
+				{ text: 'Cursor style RETRO', func: () => Patches.colorfulCursors.apply() },
+				{ text: 'Cursor style DARK RETRO', func: () => Patches.colorfulCursors.apply() },
+				{ text: 'Cursor style PLAIN', func: () => Patches.colorfulCursors.apply() },
+				{ text: 'Cursor style TIERED', func: () => Patches.colorfulCursors.apply() }
+			],
+			'(customize the visual style of your cursors)'
+		),
 		new BooleanButton('separateTechs',
 			{ text: 'Separate techs ON', func: () => Patches.statsUpgradeCategories.apply() },
 			{ text: 'Separate techs OFF' },

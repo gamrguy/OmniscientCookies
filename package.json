@@ -1,6 +1,6 @@
 {
 	"name": "omnicookies",
-	"version": "2.2.4",
+	"version": "2.3.0",
 	"description": "A diverse visual and QoL mod for Cookie Clicker.",
 	"private": true,
 	"scripts": {
@@ -25,5 +25,5 @@
 	"dependencies": {
 		"@types/cookieclicker": "^2.31.3"
 	},
-	"types": "dist/omnicookies.d.ts"
+	"types": "dist/index.d.ts"
 }

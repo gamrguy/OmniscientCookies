@@ -27,6 +27,14 @@ declare enum BypassFancySetting {
     Fast = 1,
     Fancy = 2
 }
+declare enum CursorStyleSetting {
+    Default = 0,
+    Dark = 1,
+    Retro = 2,
+    DarkRetro = 3,
+    Plain = 4,
+    Tiered = 5
+}
 declare class Settings {
     /** Current Omniscient Cookies version */
     version: string;
@@ -101,6 +109,8 @@ declare class Settings {
     drawTimerFix: boolean;
     /** Whether to use an alternative stock market layout */
     alternateStockMarket: boolean;
+    /** Selected cursor style */
+    colorfulCursors: CursorStyleSetting;
     /** Initializes to the default settings */
     constructor();
     set(setting: string, value: any): void;
@@ -444,6 +454,7 @@ declare let heavenlyCookies: Patch;
 declare let buildingPriceBuff: Patch;
 declare let alternateStockMarket: Patch;
 declare let drawTimerFix: Patch;
+declare let colorfulCursors: Patch;
 
 type _Patches_Patch = Patch;
 declare const _Patches_Patch: typeof Patch;
@@ -473,6 +484,7 @@ declare const _Patches_heavenlyCookies: typeof heavenlyCookies;
 declare const _Patches_buildingPriceBuff: typeof buildingPriceBuff;
 declare const _Patches_alternateStockMarket: typeof alternateStockMarket;
 declare const _Patches_drawTimerFix: typeof drawTimerFix;
+declare const _Patches_colorfulCursors: typeof colorfulCursors;
 declare namespace _Patches {
   export {
     _Patches_Patch as Patch,
@@ -503,6 +515,7 @@ declare namespace _Patches {
     _Patches_buildingPriceBuff as buildingPriceBuff,
     _Patches_alternateStockMarket as alternateStockMarket,
     _Patches_drawTimerFix as drawTimerFix,
+    _Patches_colorfulCursors as colorfulCursors,
   };
 }
 
@@ -687,6 +700,7 @@ declare let GrandmaSupport: typeof _GrandmaSupport;
 declare let vars: Vars;
 declare let settings: Settings;
 declare let saveData: SaveData;
+declare let CursorStyle: typeof CursorStyleSetting;
 declare let mod: Game.Mod;
 
 declare const OmniCookies_name: typeof name;
@@ -700,6 +714,7 @@ declare const OmniCookies_GrandmaSupport: typeof GrandmaSupport;
 declare const OmniCookies_vars: typeof vars;
 declare const OmniCookies_settings: typeof settings;
 declare const OmniCookies_saveData: typeof saveData;
+declare const OmniCookies_CursorStyle: typeof CursorStyle;
 declare const OmniCookies_mod: typeof mod;
 declare namespace OmniCookies {
   export {
@@ -714,6 +729,7 @@ declare namespace OmniCookies {
     OmniCookies_vars as vars,
     OmniCookies_settings as settings,
     OmniCookies_saveData as saveData,
+    OmniCookies_CursorStyle as CursorStyle,
     OmniCookies_mod as mod,
   };
 }

@@ -1491,3 +1491,68 @@ export let drawTimerFix = new Patch(function() {
 		]
 	])
 })
+
+export let colorfulCursors = new Patch(function() {
+	let assetName = "https://gamrguy.github.io/OmniscientCookies/img/colorful_cursors.png";
+	Util.loadCustomAsset(assetName);
+	Game.DrawBackground = Cppkies.injectCodes(Game.DrawBackground, [
+		[
+			`'cursor.png'`,
+			`(OmniCookies.settings.colorfulCursors && OmniCookies.settings.colorfulCursors >= OmniCookies.CursorStyle.Plain) ? '${assetName}' : $&`,
+			'replace'
+		],
+		[
+			`//var spe=-1;`,
+			`let cursorTiers = 0;
+			if(OmniCookies.settings.colorfulCursors == OmniCookies.CursorStyle.Tiered) {
+				if (Game.Has('Reinforced index finger')) cursorTiers++;
+				if (Game.Has('Carpal tunnel prevention cream')) cursorTiers++;
+				if (Game.Has('Ambidextrous')) cursorTiers++;
+				if (Game.Has('Thousand fingers')) cursorTiers++;
+				if (Game.Has('Million fingers')) cursorTiers++;
+				if (Game.Has('Billion fingers')) cursorTiers++;
+				if (Game.Has('Trillion fingers')) cursorTiers++;
+				if (Game.Has('Quadrillion fingers')) cursorTiers++;
+				if (Game.Has('Quintillion fingers')) cursorTiers++;
+				if (Game.Has('Sextillion fingers')) cursorTiers++;
+				if (Game.Has('Septillion fingers')) cursorTiers++;
+				if (Game.Has('Octillion fingers')) cursorTiers++;
+				if (Game.Has('Nonillion fingers')) cursorTiers++;
+				if (Game.Has('Fortune #001')) cursorTiers++;
+			}\n`,
+			'before'
+		],
+		[
+			`ctx.drawImage(pic,0,0,32,32,x,y,32,32);`,
+			`Math.seedrandom(Game.seed + ' cursor ' + i);
+			let offX = 0;
+			let offY = 0;
+			switch(OmniCookies.settings.colorfulCursors) {
+				case OmniCookies.CursorStyle.Default:
+					break;
+				case OmniCookies.CursorStyle.Dark:
+					offX = 32;
+					break;
+				case OmniCookies.CursorStyle.Retro:
+					offY = 32;
+					break;
+				case OmniCookies.CursorStyle.DarkRetro:
+					offX = 32;
+					offY = 32;
+					break;
+				case OmniCookies.CursorStyle.Plain:
+					break;
+				case OmniCookies.CursorStyle.Tiered:
+					offX = 32 * Math.floor(Math.random() * cursorTiers);
+					break;
+			}
+			ctx.drawImage(pic,offX,offY,32,32,x,y,32,32);`,
+			'replace'
+		],
+		[
+			`Timer.track('cursors');`,
+			`Math.seedrandom();\n`,
+			'before'
+		]
+	])
+})

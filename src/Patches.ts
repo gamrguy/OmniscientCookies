@@ -1503,22 +1503,21 @@ export let colorfulCursors = new Patch(function() {
 		],
 		[
 			`//var spe=-1;`,
-			`let cursorTiers = 0;
+			`let cursorTiers = [0];
 			if(OmniCookies.settings.colorfulCursors == OmniCookies.CursorStyle.Tiered) {
-				if (Game.Has('Reinforced index finger')) cursorTiers++;
-				if (Game.Has('Carpal tunnel prevention cream')) cursorTiers++;
-				if (Game.Has('Ambidextrous')) cursorTiers++;
-				if (Game.Has('Thousand fingers')) cursorTiers++;
-				if (Game.Has('Million fingers')) cursorTiers++;
-				if (Game.Has('Billion fingers')) cursorTiers++;
-				if (Game.Has('Trillion fingers')) cursorTiers++;
-				if (Game.Has('Quadrillion fingers')) cursorTiers++;
-				if (Game.Has('Quintillion fingers')) cursorTiers++;
-				if (Game.Has('Sextillion fingers')) cursorTiers++;
-				if (Game.Has('Septillion fingers')) cursorTiers++;
-				if (Game.Has('Octillion fingers')) cursorTiers++;
-				if (Game.Has('Nonillion fingers')) cursorTiers++;
-				if (Game.Has('Fortune #001')) cursorTiers++;
+				if (Game.Has('Carpal tunnel prevention cream')) cursorTiers.push(1);
+				if (Game.Has('Ambidextrous')) cursorTiers.push(2);
+				if (Game.Has('Thousand fingers')) cursorTiers.push(3);
+				if (Game.Has('Million fingers')) cursorTiers.push(4);
+				if (Game.Has('Billion fingers')) cursorTiers.push(5);
+				if (Game.Has('Trillion fingers')) cursorTiers.push(6);
+				if (Game.Has('Quadrillion fingers')) cursorTiers.push(7);
+				if (Game.Has('Quintillion fingers')) cursorTiers.push(8);
+				if (Game.Has('Sextillion fingers')) cursorTiers.push(9);
+				if (Game.Has('Septillion fingers')) cursorTiers.push(10);
+				if (Game.Has('Octillion fingers')) cursorTiers.push(11);
+				if (Game.Has('Nonillion fingers')) cursorTiers.push(12);
+				if (Game.Has('Fortune #001')) cursorTiers.push(13);
 			}\n`,
 			'before'
 		],
@@ -1543,7 +1542,7 @@ export let colorfulCursors = new Patch(function() {
 				case OmniCookies.CursorStyle.Plain:
 					break;
 				case OmniCookies.CursorStyle.Tiered:
-					offX = 32 * Math.floor(Math.random() * cursorTiers);
+					offX = 32 * choose(cursorTiers);
 					break;
 			}
 			ctx.drawImage(pic,offX,offY,32,32,x,y,32,32);`,

@@ -164,7 +164,7 @@ export class Settings {
 		//this.ascendMeterPrecision = 0;
 		this.drawTimerFix = false;
 		this.alternateStockMarket = false;
-		this.colorfulCursors = 0;
+		this.colorfulCursors = CursorStyleSetting.Default;
 	}
 
 	set(setting: string, value: any) {

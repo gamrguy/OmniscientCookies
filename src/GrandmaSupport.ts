@@ -395,4 +395,3 @@ export let grandmaProperties: Record<string, Properties> = {
 			}
 		}
 	}
-}

@@ -350,6 +350,21 @@ export let grandmaProperties: Record<string, Properties> = {
 			}
 		}
 	},
+	'Javascript console': {
+		building: Game.Objects['Javascript console'],
+		frequency: 1,
+		drawGrandma(basePic, id) {
+			return {
+				x: basePic.x + Math.floor((Math.random()-0.5)*50),
+				y: basePic.y,
+				z: basePic.y+0.1,
+				id: id,
+				pic: 'binaryGrandma.png',
+				frame: -1,
+				grandma: true
+			}
+		}
+	},
 	'Idleverse': {
 		building: Game.Objects['Idleverse'],
 		frequency: Math.PI/1.5,
@@ -364,5 +379,19 @@ export let grandmaProperties: Record<string, Properties> = {
 				grandma: true
 			}
 		}
+	},
+	'Cortex baker': {
+		building: Game.Objects['cortex baker'],
+		frequency: 1,
+		drawGrandma(basePic, id) {
+			return {
+				x: basePic.x + Math.floor((Math.random()-0.5)*50),
+				y: basePic.y,
+				z: basePic.y+0.1,
+				id: id,
+				pic: 'brainyGrandma.png',
+				frame: -1,
+				grandma: true
+			}
+		}
 	}
-}
